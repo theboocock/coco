@@ -105,9 +105,9 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
       if(k > ncol(outside)){
         break
       }
-      outside[j,k] = max(neffs[c(j,k)]) *  outside[j,k]
+      outside[j,k] = min(neffs[c(j,k)]) *  outside[j,k]
       if(k!=j){
-        outside[k,j] = max(neffs[c(j,k)]) * outside[k,j]
+        outside[k,j] = min(neffs[c(j,k)]) * outside[k,j]
       }
     }
   }
