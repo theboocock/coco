@@ -39,5 +39,24 @@
 
 
 # Testing with daner files and chr2_200825237_I_2merged_2_200628237_201293237
+```{r, echo=T}
+  source("R/symmetrcize.R")
+  ld_matrix = as.matrix(read.table("data/chr2_200825237_I_2merged_2_200628237_201293237.ld", header=F))
+  symmetricize(ld_matrix)
+  snpdat = read.table("data/chr2_200825237_I_2merged_2_200628237_201293237.ld.snpdat", header=T)
+  daner = read.table("data/daner_PGC_SCZ52_0513a_hq2-chr2_200825237_I_2merged_2_200628237_201293237.txt", header=T)
+  daner_dat = merge(daner,snpdat, by="SNP")
+  daner_dat$b <- log(daner_dat$OR)
+  daner_dat$se = daner_dat$SE
+  daner_dat$n = daner_dat$sum_n
+  colnames(daner_dat)[c(1,20,21)] = c("rsid","af","info")
+  daner_dat = daner_dat[order(daner_dat$BP.x),]
+  stepwise_results = stepwise_conditional_run(data_set = daner_dat, ld_matrix = ld_matrix, p_value_threshold = 0.0001,  var_y = 0.25)  
+  
+  
+```
+
+
+
 
 

@@ -30,11 +30,13 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   if (!("Z" %in% names(data_set))){
     data_set$Z = data_set$b / data_set$se
   }
-
+#  print(names(data_set))
   # ids of the conditional hits.
   # First find the maximum SNP.
-  idx_top_tmp = c(which(max(abs(data_set$Z)) == data_set$Z))
+#  print(max(abs(data_set$Z)))
+  idx_top_tmp = c(which(max(abs(data_set$Z)) == abs(data_set$Z)))
   conditional_df = data_set[idx_top_tmp,]
+#  print(idx_top_tmp)
   message(paste("Top SNP for region = ", conditional_df$rsid, ", with Z-score ", conditional_df$Z))
   current_best_p = 2 * pnorm(abs(conditional_df$Z), lower.tail = F)
   idx_cond = c()
@@ -43,7 +45,7 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
                             ,se_old=conditional_df$se, se_new =NA,Znew=NA,p=current_best_p)
   while(current_best_p < p_value_threshold){
     idx_cond = c(idx_cond, idx_top_tmp)
-    res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=freq_af$se, se_new=rep(NA,nrow(ld_matrix)))
+    res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
     for(i in 1:nrow(ld_matrix)){
         if(i %in% idx_cond){
           message("Skipping SNP as already being conditioned on")
