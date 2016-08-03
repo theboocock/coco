@@ -5,7 +5,7 @@
   library(data.table)
   ld_matrix = as.matrix(read.table("/Volumes/Elements/paintor_runs/final_regions/0_1:145538184-145786438.LD.EUR.old", header=F))
   frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/0_1:145538184-145786438.EUR", header=F)
-  kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/input_smr.txt", header=T)
+  kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/data/kottgen_effect_filtered.txt", header=T)
   all_af = fread("/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt", header=F)
   freq_af = merge(frequencies,all_af,by.x=3,by.y=1)
   colnames(freq_af) = c("rsid","chr","pos","Z","chr1","pos1","a1","a2","pop1","af","info")
@@ -35,7 +35,6 @@
   freq_af = read.table("data/snp_summary.txt", header=T)
   ld_matrix = as.matrix(read.table("data/ld_matrix_test.txt", header=F))
   stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.1)
-
 ```
 
 

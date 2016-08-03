@@ -2,6 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+<<<<<<< HEAD
 data/chr2_200825237_I_2merged_2_200628237_201293237.ld
 data/chr2_200825237_I_2merged_2_200628237_201293237.ld.snpdat
 data/daner_PGC_SCZ52_0513a_hq2-chr2_200825237_I_2merged_2_200628237_201293237.txt
+=======
+>>>>>>> b13094481a0a7da2f7f0927b542239b4c7702095
