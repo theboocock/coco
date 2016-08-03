@@ -69,7 +69,6 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
     message(paste("Best SNP is = ", best_cond_row$rsid, "with P-value ", current_best_p, " Index = ", idx_top_tmp))
     message(paste("Beta = ", best_cond_row$beta_new, " Z = ",best_cond_row$Znew))
     if(current_best_p < p_value_threshold){
-    irint(ld_matrix[c(idx_top_tmp,idx_cond), c(idx_top_tmp,idx_cond)])
       best_cond_row$p = current_best_p
       out_all_buts = rbind(out_all_buts,best_cond_row)
     }
