@@ -17,7 +17,6 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   # Extract the effective sample size for a SNP.
   # Generate hwe_diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
- # print(hwe_diag)
   data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2  - data_set$b) / (data_set$se^2 +1)
   # Remove HWE diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
@@ -40,7 +39,6 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   message(paste("Conditioning ..."))
   out_all_buts = data.frame(rsid=conditional_df$rsid, beta_old=conditional_df$b, beta_new=NA
                             ,se_old=conditional_df$se, se_new =NA,Znew=NA,p=current_best_p)
-  print(out_all_buts)
   while(current_best_p < p_value_threshold){
     idx_cond = c(idx_cond, idx_top_tmp)
     res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=freq_af$se, se_new=rep(NA,nrow(ld_matrix)))
@@ -70,8 +68,8 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
     current_best_p = 2 * pnorm(abs(best_cond_row$Znew), lower.tail = F)
     message(paste("Best SNP is = ", best_cond_row$rsid, "with P-value ", current_best_p, " Index = ", idx_top_tmp))
     message(paste("Beta = ", best_cond_row$beta_new, " Z = ",best_cond_row$Znew))
-    print(ld_matrix[c(idx_top_tmp,idx_cond), c(idx_top_tmp,idx_cond)])
     if(current_best_p < p_value_threshold){
+    irint(ld_matrix[c(idx_top_tmp,idx_cond), c(idx_top_tmp,idx_cond)])
       best_cond_row$p = current_best_p
       out_all_buts = rbind(out_all_buts,best_cond_row)
     }
@@ -92,7 +90,9 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
 ##' @param ld_matrix LD matrix for the subset of the region.
 ##' @param neff effective sample size for each SNP in the dataset
 ##' @param var_y variance of of the phenotype
-##'
+##' @param hwe_diag_outside Diagonal matrix containing the genotypic variance
+##' @param hwe_diag Diagonal matrix containing the genotypic variance *n
+##' @return Joint betas and standard errors.
 
 step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag){
   inside =  ld_matrix
@@ -120,4 +120,45 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   vars = (neff_var_y - t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (neffs[1] - length(n_betas))
   ses = sqrt(diag(vars[1] * beta_inv))
   return(c(new_betas[1,1],ses[1]))
+}
+
+
+##' All but one analysis
+##'
+##' Run the all but one analysis of the dataset.
+##'
+##'
+##' @author James Boocock
+##' @date 2 Aug 2016
+##' @title all_but_one
+##' @param data_set input file format
+##' @param ld_matrix LD matrix for the subset of the region.
+##' @param stepwise_results - results from a stepwise analysis.
+##' @return all_but_ones  betas and standard error for the entire region.
+##'
+all_but_one = function(data_set,ld_matrix, stepwise_results,p_value_threshold=0.00001,colinear_threshold=0.9,var_y = 1.6421){
+  #extract variance from the dataset
+  #hwe_diag = (2*freq_af$af * ( 1- data_set$af) * data_set$n)
+  # Extract the effective sample size for a SNP.
+  # Generate hwe_diagonal
+  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
+  # print(hwe_diag)
+  data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2  - data_set$b) / (data_set$se^2 +1)
+  # Remove HWE diagonal
+  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
+  # Get hwe D matrix
+  if(missing(stepwise_results)){
+    stop("Require the results of a stepwise analysis to perform an all but one beta generation")
+  }
+  # Get hwe D matri x without sample size, needed to generate B matrix.
+  hwe_diag_outside=  (2*data_set$af * ( 1- data_set$af))
+  message("Running a stepwise conditional analysis")
+  if (!("Z" %in% names(data_set))){
+    data_set$Z = data_set$b / data_set$se
+  }
+  # List containing the results for all the all_but_one analyses.
+  all_but_one_res = list()
+
+  ##TODO make the all but one analysis happen. Basically it is just the joint model leaving out all the independent effects.
+
 }

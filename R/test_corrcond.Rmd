@@ -29,14 +29,11 @@
     source("R/corrcond.R")
     stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.0001)
     
-    
 ```
-
-
 
 ```{r, echo=T}
   freq_af = read.table("data/snp_summary.txt", header=T)
   ld_matrix = as.matrix(read.table("data/ld_matrix_test.txt", header=F))
-  stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.0001)
+  stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.001)
 
 ```

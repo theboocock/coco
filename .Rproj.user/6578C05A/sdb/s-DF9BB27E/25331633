@@ -1,18 +1,18 @@
 {
     "collab_server" : "",
-    "contents" : "# Test corrcond\n\n```{r, echo=T}\n  source(\"R/corrcond.R\")\n  library(data.table)\n  ld_matrix = as.matrix(read.table(\"/Volumes/Elements/paintor_runs/final_regions/0_1:145538184-145786438.LD.EUR.old\", header=F))\n  frequencies = read.table(\"/Volumes/Elements/paintor_runs/final_regions/0_1:145538184-145786438.EUR\", header=F)\n  kottgen_meta_analysis = fread(\"~/Dunedin/Tony/Metanalysis/input_smr.txt\", header=T)\n  all_af = fread(\"/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt\", header=F)\n  freq_af = merge(frequencies,all_af,by.x=3,by.y=1)\n  colnames(freq_af) = c(\"rsid\",\"chr\",\"pos\",\"Z\",\"chr1\",\"pos1\",\"a1\",\"a2\",\"pop1\",\"af\")\n  freq_af$af = as.numeric(freq_af$af)\n  \n  idxs_with_betas = which(freq_af$rsid %in% kottgen_meta_analysis$SNP)\n  #freq_af = merge(freq_af,kottgen_meta_analysis,by=1)\n  ld_matrix= ld_matrix[idxs_with_betas,idxs_with_betas]\n  freq_af = freq_af[idxs_with_betas,]\n  freq_af = merge(freq_af,kottgen_meta_analysis,by=1)\n  freq_af = freq_af[order(freq_af$pos),]\n\n  stepwise_conditional_run(data_set = freq_af)\n\n\n```\n\n# Alright testing the conditional analysis fuction\n\n```{r, echo=T}\n    source(\"R/corrcond.R\")\n    stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.0001)\n    \n    \n```\n\n\n\n```{r, echo=T}\n  freq_af = read.table(\"data/snp_summary.txt\", header=T)\n  ld_matrix = as.matrix(read.table(\"data/ld_matrix_test.txt\", header=F))\n  stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.0001)\n\n```\n",
+    "contents" : "# Test corrcond\n\n```{r, echo=T}\n  source(\"R/corrcond.R\")\n  library(data.table)\n  ld_matrix = as.matrix(read.table(\"/Volumes/Elements/paintor_runs/final_regions/0_1:145538184-145786438.LD.EUR.old\", header=F))\n  frequencies = read.table(\"/Volumes/Elements/paintor_runs/final_regions/0_1:145538184-145786438.EUR\", header=F)\n  kottgen_meta_analysis = fread(\"~/Dunedin/Tony/Metanalysis/input_smr.txt\", header=T)\n  all_af = fread(\"/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt\", header=F)\n  freq_af = merge(frequencies,all_af,by.x=3,by.y=1)\n  colnames(freq_af) = c(\"rsid\",\"chr\",\"pos\",\"Z\",\"chr1\",\"pos1\",\"a1\",\"a2\",\"pop1\",\"af\")\n  freq_af$af = as.numeric(freq_af$af)\n  \n  idxs_with_betas = which(freq_af$rsid %in% kottgen_meta_analysis$SNP)\n  #freq_af = merge(freq_af,kottgen_meta_analysis,by=1)\n  ld_matrix= ld_matrix[idxs_with_betas,idxs_with_betas]\n  freq_af = freq_af[idxs_with_betas,]\n  freq_af = merge(freq_af,kottgen_meta_analysis,by=1)\n  freq_af = freq_af[order(freq_af$pos),]\n\n  stepwise_conditional_run(data_set = freq_af)\n\n\n```\n\n# Alright testing the conditional analysis fuction\n\n```{r, echo=T}\n    source(\"R/corrcond.R\")\n    stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.0001)\n    \n```\n\n```{r, echo=T}\n  freq_af = read.table(\"data/snp_summary.txt\", header=T)\n  ld_matrix = as.matrix(read.table(\"data/ld_matrix_test.txt\", header=F))\n  stepwise_results = stepwise_conditional_run(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 0.001)\n\n```\n",
     "created" : 1470181516169.000,
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "3946935212",
+    "hash" : "2278988900",
     "id" : "25331633",
-    "lastKnownWriteTime" : 1470186319,
-    "last_content_update" : 1470186319404,
+    "lastKnownWriteTime" : 1470186617,
+    "last_content_update" : 1470186617875,
     "path" : "~/Sinai/corrcond/R/test_corrcond.Rmd",
     "project_path" : "R/test_corrcond.Rmd",
     "properties" : {
-        "marks" : "<:38,2\n>:38,3",
+        "marks" : "<:35,2\n>:35,3",
         "tempName" : "Untitled1"
     },
     "relative_order" : 4,
