@@ -17,7 +17,9 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   # Extract the effective sample size for a SNP.
   # Generate hwe_diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
-  data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2  - data_set$b) / (data_set$se^2 +1)
+  sigma_m = ((var_y * data_set$n) - hwe_diag * data_set$b^2) / (data_set$n - 1 )
+  sigma_m = sigma_m / hwe_diag
+  data_set$neff = (var_y * data_set$n) / (hwe_diag *sigma_m)  - (data_set$b^2) / (sigma_m) +1
   # Remove HWE diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
   # Get hwe D matrix
@@ -31,7 +33,7 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
 
   # ids of the conditional hits.
   # First find the maximum SNP.
-  idx_top_tmp = c(which(max(abs(data_set$Z)) == data_set$Z))
+  idx_top_tmp = c(which(max(abs(data_set$Z)) == abs(data_set$Z)))
   conditional_df = data_set[idx_top_tmp,]
   message(paste("Top SNP for region = ", conditional_df$rsid, ", with Z-score ", conditional_df$Z))
   current_best_p = 2 * pnorm(abs(conditional_df$Z), lower.tail = F)
@@ -41,7 +43,11 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
                             ,se_old=conditional_df$se, se_new =NA,Znew=NA,p=current_best_p)
   while(current_best_p < p_value_threshold){
     idx_cond = c(idx_cond, idx_top_tmp)
-    res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=freq_af$se, se_new=rep(NA,nrow(ld_matrix)))
+    res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
+    if(length(idx_cond) == nrow(ld_matrix)){
+      message("All SNPs in joint model")
+      break
+    }
     for(i in 1:nrow(ld_matrix)){
         if(i %in% idx_cond){
           message("Skipping SNP as already being conditioned on")
@@ -52,7 +58,7 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
         tmp_ld_matrix = ld_matrix[of_interest,of_interest]
         neffs = data_set$neff[of_interest]
         if(any(abs(tmp_ld_matrix[1,2:ncol(tmp_ld_matrix)]) > colinear_threshold)){
-          message("Skipping SNP as co-linear with top_snps.")
+          #message("Skipping SNP as co-linear with top_snps.")
           next
         }
 
@@ -97,9 +103,6 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   inside =  ld_matrix
   n_betas = length(betas)
   outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
-
-  # outside = sqrt(diag(hwe_diag[idx])) %*% inside %*% sqrt(diag(hwe_diag[idx]))
-  #print(outside)
   for(j in 1:ncol(outside)){
     for(k in (j):ncol(outside)){
       if(k > ncol(outside)){
@@ -111,12 +114,17 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
       }
     }
   }
+ # print("Outside")
+#print(outside)
+#print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
   beta_inv = chol2inv(chol(outside))
   new_betas = beta_inv %*% diag(hwe_diag) %*% betas
+  #print(beta_inv)
   # We only really care about the results from the first SNP
   #because that's our SNP we are adding to the model
   neff_var_y = neffs[1] * var_y
   vars = (neff_var_y - t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (neffs[1] - length(n_betas))
+  #print(vars)
   ses = sqrt(diag(vars[1] * beta_inv))
   return(c(new_betas[1,1],ses[1]))
 }
@@ -139,25 +147,59 @@ all_but_one = function(data_set,ld_matrix, stepwise_results,p_value_threshold=0.
   #extract variance from the dataset
   #hwe_diag = (2*freq_af$af * ( 1- data_set$af) * data_set$n)
   # Extract the effective sample size for a SNP.
-  # Generate hwe_diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
-  # print(hwe_diag)
-  data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2  - data_set$b) / (data_set$se^2 +1)
+  sigma_m = ((var_y * data_set$n) - hwe_diag * data_set$b^2) / (data_set$n - 1 )
+  sigma_m = sigma_m / hwe_diag
+  data_set$neff = (var_y * data_set$n) / (hwe_diag *sigma_m)  - (data_set$b^2) / (sigma_m) +1
+  #print(data_set$neff)
+  #print(hwe_diag)
   # Remove HWE diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
   # Get hwe D matrix
-  if(missing(stepwise_results)){
-    stop("Require the results of a stepwise analysis to perform an all but one beta generation")
-  }
+
   # Get hwe D matri x without sample size, needed to generate B matrix.
   hwe_diag_outside=  (2*data_set$af * ( 1- data_set$af))
-  message("Running a stepwise conditional analysis")
+  message("Running a all but one conditional analysis")
   if (!("Z" %in% names(data_set))){
     data_set$Z = data_set$b / data_set$se
   }
-  # List containing the results for all the all_but_one analyses.
+  idx_joint = which(data_set$rsid %in% stepwise_results$rsid)
+  if(length(idx_joint) == 0){
+    stop("No SNPs to perform an all but one conditional analysis on")
+  }
+  if(length(idx_joint) == 1){
+   combinations=matrix(c(idx_joint))
+  }else{
+    combinations = combn(length(idx_joint),length(idx_joint) - 1)
+  }
+
+  message(paste("Runnnig a all but one analysis for ",length(idx_joint)," snps"))
   all_but_one_res = list()
+  for(i in 1:ncol(combinations)){
+  #  idx_conditional = c(tmp_model_idx)
+    tmp_model_idx = combinations[,i]
+    res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
+    for(j in 1:nrow(data_set)){
 
-  ##TODO make the all but one analysis happen. Basically it is just the joint model leaving out all the independent effects.
-
+      if(j %in% tmp_model_idx){
+          res_step$beta_new[j] = res_step$beta_old[j]
+          res_step$se_new[j] = res_step$se_old[j]
+        }
+        of_interest = c(j, tmp_model_idx)
+        betas = data_set$b[of_interest]
+        tmp_ld_matrix = ld_matrix[of_interest,of_interest]
+        neffs = data_set$neff[of_interest]
+        if(any(abs(tmp_ld_matrix[1,2:ncol(tmp_ld_matrix)]) > colinear_threshold)){
+          message("Skipping SNP as co-linear with top_snps.")
+          next
+        }
+        hwe_diag_outside_tmp = hwe_diag_outside[of_interest]
+        hwe_diag_tmp = hwe_diag[of_interest]
+        cond_results = step_conditional(betas, tmp_ld_matrix, neffs,var_y, hwe_diag_outside_tmp,hwe_diag_tmp)
+        res_step$beta_new[j]= cond_results[1]
+        res_step$se_new[j]= cond_results[2]
+    }
+    all_but_one_res = c(all_but_one_res,list(res_step))
+  }
+  return(all_but_one_res)
 }
