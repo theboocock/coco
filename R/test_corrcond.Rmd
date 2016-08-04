@@ -56,18 +56,27 @@ require(bindata)
 N <- 1000000
 p1 <- 0.1
 p2 <- 0.5
-rho<- -.2
-
+rho<- -.3
+beta = c(0.05, 0,.05,0)
 h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
-
+h_sq = .6
+eta = X %*% beta
+y = eta + rnorm(N, 0, sd=sqrt((1-h_sq)))
 g1 = (h1[,1] + h2[,1])
 g2 = (h1[,2] + h2[,2])
 h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 g3 = (h1[,1] + h2[,1])
 g4= (h1[,2] + h2[,2])
+
 X = cbind(g1,g2,g3,g4)
+fitJoint1 = fitJoint
+
+X_small = X[1:1e5,]
+y_small = y[1:1e5]
+fitJoint = lm(y_small ~ X_small)
+summary(fitJoint)
 X = apply(X,2, function(x){ 
     af = ( table(x)[3] * 2 +  table(x)[2]) / (2* length(x))
     X_test = x
@@ -75,7 +84,7 @@ X = apply(X,2, function(x){
     X_test[ x == 1] = 1-   2* af
     X_test[ x == 2] = 2-   2* af
   return(X_test)
-  })
+})
 
 
 
@@ -84,7 +93,7 @@ X_test[ X_test == 0] = -2  * afs[1]
 X_test[ X_test == 1] = 1-   2* afs[1]
 X_test[ X_test == 2] = 2-   2* afs[1]
 X_mean = apply(X,2,function(x) x - mean(x))
-beta = c(0.05, 0,.05,0)
+
 
 h_sq = .6
 eta = X %*% beta
@@ -221,9 +230,26 @@ coef(summary(fit_two))[,2][2:3]
   daner_dat$n = daner_dat$sum_n
   colnames(daner_dat)[c(1,20,21)] = c("rsid","af","info")
   daner_dat = daner_dat[order(daner_dat$BP.x),]
+  r2 =  r_inverse(daner_dat$b ,0.5,daner_dat$af)
+  r(daner_dat$b,phi = 0.5,daner_dat$af)
+  gammas = r2[,2]
+  
+  u = 0.43097855797849721204
+  alpha = log(u/(1-u))
+  gamma = gammas * exp(alpha) / ((1+exp(alpha))^2)
+  linear_ses = daner_dat$se * exp(alpha) / ((1+exp(alpha))^2)
+  
+  y = 2*(daner_dat$af) * (1 - daner_dat$af) * daner_dat$sum_n
+  x = 1/beta^2
+  summary(lm(y ~ x - 1))
+  plot(daner_dat$b - r(gamma,phi = 0.5, theta = daner_dat$af))
   
   
-  
+    #
+
+
+daner_dat$b 
+
     res_preparation = prep_dataset_common(data_set = daner_dat,ld_matrix= ld_matrix,ld_noise=0)
   stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-3,var_y = 3.7288262)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results ,var_y=3.7288262)
@@ -241,18 +267,20 @@ r_inverse= function(gamma,phi,ref_af){
   C = gamma
   x1 = (-B+ sqrt( B^2 - 4 * A * C  ))/(2*A)
   x2 = (-B - sqrt( B^2 - 4 * A * C  ))/(2*A)
-  return(c(x1,x2))
+  return(cbind(x1,x2))
   }
   r =  function(gamma,phi,theta){
     r = gamma/(((phi*(1-phi)) + 0.5*(1-2*phi) * (1 - 2*theta) * gamma) - (0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) /(phi*(1-phi))* gamma^2)
     r
   }
   
-  u = 0.3
+  u = 0.4
 alpha = log(u/(1-u))
   0.2610864* exp(alpha) / ((1+exp(alpha))^2)
   0.1215532 * exp(alpha) / ((1+exp(alpha))^2)
   r(0.03,0.5,0.944)
+  
+ u = 35476 /(46839 + 35476)
 ```
 
 

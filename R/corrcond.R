@@ -6,7 +6,7 @@
 ##' @author James Boocock
 ##' @date 2 Aug 2016
 ##' @title stepwise_conditional
-##' @param data_set
+##' @param data_set data.frame. Contains the relevant
 ##' @param ld_matrix
 ##' @param p_value_threshold.
 ##' @param ld_noise
@@ -249,7 +249,6 @@ all_but_one = function(res_preparation, stepwise_results,p_value_threshold=0.000
                               hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside,data_set = data_set,
                               all_but_one = T,colinear_threshold = 0.9)
     hit = which(!(1:length(idx_joint) %in% combinations[,i]))
-    l1 =
     all_but_one_res[[i]] = list(res_step=res_step, main_hit=as.character(data_set$rsid[idx_joint[hit]]),
                                              conditional_on=c(as.character(data_set$rsid[idx_joint[combinations[,i]]])))
   }
