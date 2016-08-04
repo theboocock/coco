@@ -16,12 +16,19 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   #hwe_diag = (2*freq_af$af * ( 1- data_set$af) * data_set$n)
   # Extract the effective sample size for a SNP.
   # Generate hwe_diagonal
+<<<<<<< HEAD
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
   sigma_m = ((var_y * data_set$n) - hwe_diag * data_set$b^2) / (data_set$n - 1 )
   sigma_m = sigma_m / hwe_diag
   data_set$neff = (var_y * data_set$n) / (hwe_diag *sigma_m)  - (data_set$b^2) / (sigma_m) +1
+=======
+  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n )
+#  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n * data_set$info)
+  data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2  - data_set$b) / (data_set$se^2 +1)
+>>>>>>> 863084183cb145cccd8ba7577e3d2fceabbad2b2
   # Remove HWE diagonal
   hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
+#  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff * data_set$info)  ## ??
   # Get hwe D matrix
 
   # Get hwe D matri x without sample size, needed to generate B matrix.
@@ -30,11 +37,16 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   if (!("Z" %in% names(data_set))){
     data_set$Z = data_set$b / data_set$se
   }
-
+#  print(names(data_set))
   # ids of the conditional hits.
   # First find the maximum SNP.
+<<<<<<< HEAD
+=======
+#  print(max(abs(data_set$Z)))
+>>>>>>> 863084183cb145cccd8ba7577e3d2fceabbad2b2
   idx_top_tmp = c(which(max(abs(data_set$Z)) == abs(data_set$Z)))
   conditional_df = data_set[idx_top_tmp,]
+#  print(idx_top_tmp)
   message(paste("Top SNP for region = ", conditional_df$rsid, ", with Z-score ", conditional_df$Z))
   current_best_p = 2 * pnorm(abs(conditional_df$Z), lower.tail = F)
   idx_cond = c()
@@ -44,10 +56,13 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
   while(current_best_p < p_value_threshold){
     idx_cond = c(idx_cond, idx_top_tmp)
     res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)), se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
+<<<<<<< HEAD
     if(length(idx_cond) == nrow(ld_matrix)){
       message("All SNPs in joint model")
       break
     }
+=======
+>>>>>>> 863084183cb145cccd8ba7577e3d2fceabbad2b2
     for(i in 1:nrow(ld_matrix)){
         if(i %in% idx_cond){
           message("Skipping SNP as already being conditioned on")

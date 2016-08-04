@@ -8,7 +8,7 @@
   kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/data/kottgen_effect_filtered.txt", header=T)
   all_af = fread("/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt", header=F)
   freq_af = merge(frequencies,all_af,by.x=3,by.y=1)
-  colnames(freq_af) = c("rsid","chr","pos","Z","chr1","pos1","a1","a2","pop1","af")
+  colnames(freq_af) = c("rsid","chr","pos","Z","chr1","pos1","a1","a2","pop1","af","info")
   freq_af$af = as.numeric(freq_af$af)
   
   idxs_with_betas = which(freq_af$rsid %in% kottgen_meta_analysis$SNP)
@@ -194,5 +194,30 @@ coef(summary(fit_two))[,2][2:3]
 
 
 
-
+=======
 ```
+
+
+
+# Testing with daner files and chr2_200825237_I_2merged_2_200628237_201293237
+```{r, echo=T}
+  source("R/symmetrcize.R")
+  ld_matrix = as.matrix(read.table("data/chr2_200825237_I_2merged_2_200628237_201293237.ld", header=F))
+  symmetricize(ld_matrix)
+  snpdat = read.table("data/chr2_200825237_I_2merged_2_200628237_201293237.ld.snpdat", header=T)
+  daner = read.table("data/daner_PGC_SCZ52_0513a_hq2-chr2_200825237_I_2merged_2_200628237_201293237.txt", header=T)
+  daner_dat = merge(daner,snpdat, by="SNP")
+  daner_dat$b <- log(daner_dat$OR)
+  daner_dat$se = daner_dat$SE
+  daner_dat$n = daner_dat$sum_n
+  colnames(daner_dat)[c(1,20,21)] = c("rsid","af","info")
+  daner_dat = daner_dat[order(daner_dat$BP.x),]
+  stepwise_results = stepwise_conditional_run(data_set = daner_dat, ld_matrix = ld_matrix, p_value_threshold = 0.0001,  var_y = 0.25)  
+  
+  
+```
+
+
+
+
+
