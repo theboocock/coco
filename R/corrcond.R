@@ -147,12 +147,13 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
 ##' @param p_value_threshold.
 ##'
 ##'
-stepwise_conditional_run = function(res_preparation,p_value_threshold=0.00001,colinear_threshold=0.9,var_y = 1.6421){
+stepwise_conditional_run = function(res_preparation,p_value_threshold=0.0001,colinear_threshold=0.9){
   #extract variance from the dataset
   #hwe_diag = (2*freq_af$af * ( 1- data_set$af) * data_set$n)
   # Extract the effective sample size for a SNP.
   hwe_diag = res_preparation$hwe_diag
   data_set = res_preparation$data_set
+  var_y = res_preparation$var_y
   hwe_diag_outside = res_preparation$hwe_diag_outside
   ld_matrix = res_preparation$ld_matrix
   var_y = res_preparation$var_y
@@ -177,7 +178,7 @@ stepwise_conditional_run = function(res_preparation,p_value_threshold=0.00001,co
     }
     res_step= get_joint_betas(idx_joint = idx_cond, ld_matrix = ld_matrix,
                               hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside,data_set = data_set,
-                              colinear_threshold = 0.9,var_y=var_y)
+                              all_but_one = F,colinear_threshold = 0.9, var_y=var_y)
     res_step$Znew = res_step$beta_new/res_step$se_new
     idx_top_tmp = which(max(abs(res_step$Znew),na.rm=T) == abs(res_step$Znew))
     best_cond_row = res_step[idx_top_tmp,]
@@ -224,6 +225,7 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
     }
   }
   #print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
+  print(outside)
   beta_inv = chol2inv(chol(outside))
   #print(betas)
   new_betas = beta_inv %*% diag(hwe_diag) %*% betas
@@ -240,7 +242,6 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
 
 
 get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outside,var_y,colinear_threshold=.9){
-
   res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)),
                       se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
   for(j in 1:nrow(data_set)){
@@ -278,10 +279,11 @@ get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outsi
 ##' @param stepwise_results - results from a stepwise analysis.
 ##' @return all_but_ones  betas and standard error for the entire region.
 ##'
-all_but_one = function(res_preparation, stepwise_results,p_value_threshold=0.00001,colinear_threshold=0.9,var_y = 1.6421){
+all_but_one = function(res_preparation, stepwise_results,p_value_threshold=1e-6,colinear_threshold=0.9){
   #extract variance from the dataset
   hwe_diag = res_preparation$hwe_diag
   data_set = res_preparation$data_set
+  var_y = res_preparation$var_y
   hwe_diag_outside = res_preparation$hwe_diag_outside
   ld_matrix = res_preparation$ld_matrix
   idx_joint = which(data_set$rsid %in% stepwise_results$rsid)
