@@ -13,15 +13,33 @@
 ##'
 ##'
 
-r_inverse= function(gamma,phi,ref_af){
-  B =  (0.5*(1-2*phi) * (1 - 2*ref_af) * gamma -1)
-  A = - (0.084 + 0.9 * phi * (1-2 * phi) * ref_af * (1-ref_af)) * gamma
-  C = gamma
+logistic_to_linear = function(b, se, phi, ref_af, mu){
+  mu=phi # ??
+  B =  (0.5*(1-2*phi) * (1 - 2*ref_af) * b -1)
+  A = - (0.084 + 0.9 * phi * (1-2 * phi) * ref_af * (1-ref_af)) * b
+  C = b
   x1 = (-B+ sqrt( B^2 - 4 * A * C  ))/(2*A)
   x2 = (-B - sqrt( B^2 - 4 * A * C  ))/(2*A)
-  return(cbind(x1,x2))
+  ## Always x2 ??
+  beta = x2 # inverse of GWAS_approximation
+  alpha = log(mu/(1-mu))
+  beta =  beta * exp(alpha)/(1+exp(alpha)) # FOA
+  B =  (0.5*(1-2*phi) * (1 - 2*ref_af) * b -1)
+  A = - (0.084 + 0.9 * phi * (1-2 * phi) * ref_af * (1-ref_af)) * b
+  C = b
+  x1 = (-B+ sqrt( B^2 - 4 * A * C  ))/(2*A)
+  x2 = (-B - sqrt( B^2 - 4 * A * C  ))/(2*A)
+  ## Always x2 ??
+  se = x2
+  se = se * exp(alpha)/(1+exp(alpha)) # FOA
+  return(c(beta,se))
 }
-r =  function(gamma,phi,theta){
-  r = gamma/(((phi*(1-phi)) + 0.5*(1-2*phi) * (1 - 2*theta) * gamma) - (0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) /(phi*(1-phi))* gamma^2)
-  r
+
+linear_to_logistic =  function(b, se, gamma,phi,theta){
+  # mu == phi ??
+  gamma = b/(((phi*(1-phi)) + 0.5*(1-2*phi) * (1 - 2*theta) * b) - (0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) /(phi*(1-phi))* b^2)
+  se = se/(((phi*(1-phi)) + 0.5*(1-2*phi) * (1 - 2*theta) * se) - (0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) /(phi*(1-phi))* se^2)
+  return(c(gamma,se))
 }
+
+

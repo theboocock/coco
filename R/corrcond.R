@@ -9,26 +9,26 @@
 ##' @param data_set data.frame. Contains the relevant
 ##' @param ld_matrix
 
-conditional_from_ids = function(rsids, data_set, ld_matrix, indexes){
+conditional_from_ids = function(rsids, res_preparation, idxs){
   hwe_diag = res_preparation$hwe_diag
   data_set = res_preparation$data_set
   hwe_diag_outside = res_preparation$hwe_diag_outside
   ld_matrix = res_preparation$ld_matrix
   var_y = res_preparation$var_y
-  if(!missing(rsids)){
-    rsid_idx = which(data_set$rsid %in% indexes)
-  } else if(!missing(indexes)){
-    rsid_idx = indexes
+  if(!is.null(rsids)){
+    rsid_idx = which(data_set$rsid %in% rsids)
+  } else if(!is.null(idxs)){
+    rsid_idx = idxs
   }else{
     stop("Neither indexes of rsids specified")
   }
   if(length(rsid_idx) == 0){
     stop("No rsids or indexes to conditional on were found")
   }
-  res_step= get_joint_betas(idx_joint = idx_cond, ld_matrix = ld_matrix,
-                  hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside,data_set = data_set,
+  res_step= get_joint_betas(idx_joint = rsid_idx, ld_matrix = ld_matrix,
+                  hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside, data_set = data_set,
                   colinear_threshold = 0.9,var_y=var_y)
-  res_step = list(res_step=res_step, main_hit=as.character(data_set$rsid[idx_joint[hit]]),
+  res_step = list(res_step=res_step, main_hit=NA,
        conditional_on=c(as.character(data_set$rsid[rsid_idx])))
   return(res_step)
 }
@@ -47,10 +47,29 @@ conditional_from_ids = function(rsids, data_set, ld_matrix, indexes){
 ##'
 ##'
 stepwise_conditional_wrapper = function(data_set ,ld_matrix,p_value_threshold = 1e-3,var_y = 1.6421, ld_noise=0){
-  res_preparation_x = prep_dataset_common(data_set = data_set,ld_matrix= ld_matrix,ld_noise=ld_noise, var_y = var_y)
-  stepwise_results_x = stepwise_conditional_run(res_preparation = res_preparation_x,p_value_threshold = p_value_threshold)
-  all_but_one_df_x = all_but_one(res_preparation=res_preparation_x,stepwise_results = stepwise_results_x)
-  return (all_but_one_df_x)
+  res_preparation = prep_dataset_common(data_set = data_set,ld_matrix= ld_matrix,ld_noise=ld_noise, var_y = var_y)
+  stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = p_value_threshold)
+  all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results)
+  return (all_but_one_df)
+}
+
+##'
+##' Generate conditional signals from a conditional dataset.
+##'
+##'
+##' @author Eli A. Stahl
+##'  @data 2 Aug 2016
+##' @title stepwise_conditional
+##' @param data_set data.frame. Contains the relevant
+##' @param ld_matrix
+##' @param p_value_threshold.
+##' @param ld_noise
+##'
+##'
+conditional_from_ids_wrapper = function(data_set ,ld_matrix, rsids=NULL, idxs=NULL,var_y = 1, ld_noise=0){
+  res_preparation = prep_dataset_common(data_set = data_set,ld_matrix= ld_matrix,ld_noise=ld_noise, var_y = var_y)
+  stepwise_results = conditional_from_ids(rsids=rsids, idxs=idxs, res_preparation = res_preparation)
+  return (stepwise_results)
 }
 
 ##' Prepare dataset common
@@ -75,7 +94,7 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
     }
     message("Preparing the dataset for a  conditional analysis")
 
-    pos = which(grepl("^pos$|^bp$|^bp_hg19$|^position$|^chrom_start$", names(data_set),  ignore.case = T))
+    pos = which(grepl("^pos$|^bp|^bp_hg19$|^position$|^chrom_start$", names(data_set),  ignore.case = T))
     if(length(pos) == 0){
       stop("Position column not found")
     }
@@ -95,12 +114,12 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
     }# sometimes have 2 (one for each allele), doesn't matter whcih you take for our applications (fGWAS and coloc)
     colnames(data_set)[af] = "af"
 
-    se = which(grepl("^se$|^StdErr$|BMIadjMainSE", names(data_set),  ignore.case = T))
+    se = which(grepl("^se$|^StdErr$|BMIadjMainSE", names(data_set),  ignore.case = F))
     if(length(se) == 0){
       stop("SE column not found")
     }
     colnames(data_set)[se] = "se"
-    n = which(grepl("^N$|^TotalSampleSize$|^SAMPLE_SIZE$", names(data_set),  ignore.case = T))
+    n = which(grepl("^N$|^n$|^sum_n$|^TotalSampleSize$|^SAMPLE_SIZE$", names(data_set),  ignore.case = T))
     if(length(n) == 0){
       stop("n column not found")
     }
@@ -112,22 +131,37 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
       data_set$info = 1
     }
     colnames(data_set)[info] = "info"
-
+    
     z = which(grepl("^Z$|zscore", names(data_set),  ignore.case = T))
     if(length(z) ==0){
       data_set$z = data_set$b/data_set$se
+    } else {
+      colnames(data_set)[z] = "z"
     }
-    colnames(data_set)[z] = "z"
+    
+    p = which(grepl("^P$|^Pval", names(data_set),  ignore.case = T))
+    if(length(p) ==0){
+      data_set$p = 2*pnorm(abs(data_set$z),lower.tail=F)
+    } else {
+      colnames(data_set)[p] = "p"
+    }
     #order the dataset on the position column
     data_set = data_set[order(data_set$pos),]
+    print(data_set[data_set$rsid=="rs6708345",])
+    data_set$b = data_set$b * sqrt(2*data_set$af*(1-data_set$af)*data_set$info)
+    data_set$se = data_set$se * sqrt(2*data_set$af*(1-data_set$af)*data_set$info)
 
-    hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
-
+    #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$n)
+    hwe_diag =  ( data_set$n)
+    
     data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
-
-    hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
-    hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af))
-
+    print(data_set[data_set$rsid=="rs6708345",])
+    
+    #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$neff)
+    hwe_diag =  data_set$neff
+    #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
+    hwe_diag_outside =  rep(1, times=nrow(data_set))
+    
     if(ld_noise != 0){
       ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))]  = ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))] + ld_noise
     }
@@ -225,7 +259,7 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
     }
   }
   #print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
-  print(outside)
+  #print(outside)
   beta_inv = chol2inv(chol(outside))
   #print(betas)
   new_betas = beta_inv %*% diag(hwe_diag) %*% betas
@@ -233,7 +267,7 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   # We only really care about the results from the first SNP
   #because that's our SNP we are adding to the model
   neff_var_y = neffs[1] * var_y
-  vars = (neff_var_y - t(betas) %*%  diag(hwe_diag) %*% ((betas))) / (neffs[1] - length(n_betas))
+  vars = (neff_var_y - t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (neffs[1] - n_betas)
   #print(vars)
   ses = sqrt(diag(vars[1] * beta_inv))
   #print(ses)
@@ -242,11 +276,13 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
 
 
 get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outside,var_y,colinear_threshold=.9){
-  res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)),
-                      se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
+  res_step = data.frame(rsid=data_set$rsid,pos=data_set$pos,beta_old=data_set$b,se_old=data_set$se, z_old=data_set$z, P_old=rep(NA,nrow(ld_matrix)), 
+                        beta_new=rep(NA,nrow(ld_matrix)), 
+                        se_new=rep(NA,nrow(ld_matrix)), z_new=rep(NA,nrow(ld_matrix)))
+  n_snps_skipped = 0
   for(j in 1:nrow(data_set)){
-      if(j %in% idx_joint){
-        message("Skipping SNP as already being conditioned on")
+    if(j %in% idx_joint){
+#        message("Skipping SNP as already being conditioned on")
         next
       }
     of_interest = c(j, idx_joint)
@@ -255,6 +291,7 @@ get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outsi
     neffs = data_set$neff[of_interest]
     if(any(abs(tmp_ld_matrix[1,2:ncol(tmp_ld_matrix)]) > colinear_threshold)){
       # message("Skipping SNP as co-linear with top_snps.")
+      n_snps_skipped = n_snps_skipped + 1
       next
     }
     hwe_diag_outside_tmp = hwe_diag_outside[of_interest]
@@ -262,7 +299,9 @@ get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outsi
     cond_results = step_conditional(betas, tmp_ld_matrix, neffs,var_y, hwe_diag_outside_tmp,hwe_diag_tmp)
     res_step$beta_new[j]= cond_results[1]
     res_step$se_new[j]= cond_results[2]
+    res_step$z_new[j]= res_step$beta_new[j]/res_step$se_new[j]
   }
+  message(paste("Skipped",n_snps_skipped,"SNPs as colinear"))
   return(res_step)
 }
 
