@@ -210,9 +210,6 @@ sqrt(diag(vars[1] * beta_inv))
 coef(summary(fit_two))[,2][2:3]
 
 
-
-
-=======
 ```
 
 
@@ -230,27 +227,25 @@ coef(summary(fit_two))[,2][2:3]
   daner_dat$n = daner_dat$sum_n
   colnames(daner_dat)[c(1,20,21)] = c("rsid","af","info")
   daner_dat = daner_dat[order(daner_dat$BP.x),]
-  r2 =  r_inverse(daner_dat$b ,0.5,daner_dat$af)
-  r(daner_dat$b,phi = 0.5,daner_dat$af)
-  gammas = r2[,2]
-  
+   
   u = 0.43097855797849721204
+  r2 =  r_inverse(daner_dat$b ,u,daner_dat$af)
+  r(daner_dat$b,phi =u,daner_dat$af)
+  gammas = r2[,2]
+ 
   alpha = log(u/(1-u))
   gamma = gammas * exp(alpha) / ((1+exp(alpha))^2)
   linear_ses = daner_dat$se * exp(alpha) / ((1+exp(alpha))^2)
   
   y = 2*(daner_dat$af) * (1 - daner_dat$af) * daner_dat$sum_n
-  x = 1/beta^2
+  x = 1/linear_ses^2
   summary(lm(y ~ x - 1))
   plot(daner_dat$b - r(gamma,phi = 0.5, theta = daner_dat$af))
-  
-  
-    #
 
 
 daner_dat$b 
-
-    res_preparation = prep_dataset_common(data_set = daner_dat,ld_matrix= ld_matrix,ld_noise=0)
+    wrap_function = stepwise_conditional_wrapper(data_set = daner_dat,ld_matrix = ld_matrix)
+    res_preparation = prep_dataset_common(data_set = daner_dat,ld_matrix= ld_matrix,ld_noise=0, var_y = 3.7288262)
   stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-3,var_y = 3.7288262)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results ,var_y=3.7288262)
   
