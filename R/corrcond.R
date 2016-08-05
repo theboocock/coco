@@ -26,7 +26,7 @@ stepwise_conditional_wrapper = function(data_set ,ld_matrix,p_value_threshold = 
 ##' @title stepwise_conditional
 ##' @param data_set
 ##'
-prep_dataset_common = function(data_set,ld_matrix, ld_noise=0){
+prep_dataset_common = function(data_set,ld_matrix, ld_noise=0, var_y = 1){
 
   message("Preparing the dataset for a  conditional analysis")
   if(ncol(ld_matrix) != nrow(data_set)){
@@ -47,20 +47,27 @@ prep_dataset_common = function(data_set,ld_matrix, ld_noise=0){
   if( !("af" %in% names(data_set) )){
     stop("Input data.frame must contain a af column")
   }
-
-  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
-  sigma_m = ((var_y * data_set$n) - hwe_diag * data_set$b^2) / (data_set$n - 1 ) / (hwe_diag)
+  if( !("info" %in% names(data_set) )){
+    message("No info score. Assuming HWE genotypic variances")
+    data_set$info = 1
+  }
+  
+  hwe_diag =  ( data_set$n)
+#  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$n)
+  #  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$n)
+#  sigma_m = ((var_y * data_set$n) - hwe_diag * data_set$b^2) / (data_set$n - 1 ) / (hwe_diag)
   #hwe_diag * sigma_m ()
   data_set$neff = (var_y * data_set$n) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
   # Remove HWE diagonal
-  #  print(data_set$neff)
-  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
-
+  #print(head(data_set$neff))
+  hwe_diag =  ( data_set$neff)
+#  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff)
   #  hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$neff * data_set$info)  ## ??
   # Get hwe D matrix
 
   # Get hwe D matri x without sample size, needed to generate B matrix.
-  hwe_diag_outside=  (2*data_set$af * ( 1- data_set$af))
+#  hwe_diag_outside=  (2*data_set$af * ( 1- data_set$af))
+  hwe_diag_outside=  rep(1, times=length(data_set$af))
   if( !("Z" %in% names(data_set))){
     data_set$Z = data_set$b / data_set$se
   }
@@ -69,7 +76,7 @@ prep_dataset_common = function(data_set,ld_matrix, ld_noise=0){
   if(ld_noise != 0){
     ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))]  = ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))] + ld_noise
   }
-  return(list(hwe_diag=hwe_diag,hwe_diag_outside=hwe_diag_outside, data_set=data_set,ld_matrix=ld_matrix))
+  return(list(hwe_diag=hwe_diag,hwe_diag_outside=hwe_diag_outside, data_set=data_set,ld_matrix=ld_matrix, var_y=var_y))
 }
 
 
@@ -85,12 +92,13 @@ prep_dataset_common = function(data_set,ld_matrix, ld_noise=0){
 ##' @param p_value_threshold.
 ##'
 ##'
-stepwise_conditional_run = function(res_preparation,p_value_threshold=0.00001,colinear_threshold=0.9,var_y = 1.6421){
+stepwise_conditional_run = function(res_preparation,p_value_threshold=0.0001,colinear_threshold=0.9){
   #extract variance from the dataset
   #hwe_diag = (2*freq_af$af * ( 1- data_set$af) * data_set$n)
   # Extract the effective sample size for a SNP.
   hwe_diag = res_preparation$hwe_diag
   data_set = res_preparation$data_set
+  var_y = res_preparation$var_y
   hwe_diag_outside = res_preparation$hwe_diag_outside
   ld_matrix = res_preparation$ld_matrix
   #print(nrow(ld_matrix))
@@ -114,7 +122,7 @@ stepwise_conditional_run = function(res_preparation,p_value_threshold=0.00001,co
     }
     res_step= get_joint_betas(idx_joint = idx_cond, ld_matrix = ld_matrix,
                               hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside,data_set = data_set,
-                              all_but_one = F,colinear_threshold = 0.9)
+                              all_but_one = F,colinear_threshold = 0.9, var_y=var_y)
     res_step$Znew = res_step$beta_new/res_step$se_new
     idx_top_tmp = which(max(abs(res_step$Znew),na.rm=T) == abs(res_step$Znew))
     best_cond_row = res_step[idx_top_tmp,]
@@ -161,6 +169,7 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
     }
   }
   #print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
+  print(outside)
   beta_inv = chol2inv(chol(outside))
   #print(betas)
   new_betas = beta_inv %*% diag(hwe_diag) %*% betas
@@ -176,21 +185,14 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
 }
 
 
-get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outside, all_but_one=FALSE,colinear_threshold=.9){
+get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outside, var_y, all_but_one=FALSE,colinear_threshold=.9){
 
   res_step = data.frame(rsid=data_set$rsid,beta_old=data_set$b, beta_new=rep(NA,nrow(ld_matrix)),
                       se_old=data_set$se, se_new=rep(NA,nrow(ld_matrix)))
   for(j in 1:nrow(data_set)){
-    if(all_but_one){
     if(j %in% idx_joint){
-      res_step$beta_new[j] = res_step$beta_old[j]
-      res_step$se_new[j] = res_step$se_old[j]
-      }
-    }else{
-      if(j %in% idx_joint){
-        message("Skipping SNP as already being conditioned on")
-        next
-      }
+      message("Skipping SNP as already being conditioned on")
+      next
     }
     of_interest = c(j, idx_joint)
     betas = data_set$b[of_interest]
@@ -222,10 +224,11 @@ get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outsi
 ##' @param stepwise_results - results from a stepwise analysis.
 ##' @return all_but_ones  betas and standard error for the entire region.
 ##'
-all_but_one = function(res_preparation, stepwise_results,p_value_threshold=0.00001,colinear_threshold=0.9,var_y = 1.6421){
+all_but_one = function(res_preparation, stepwise_results,p_value_threshold=1e-6,colinear_threshold=0.9){
   #extract variance from the dataset
   hwe_diag = res_preparation$hwe_diag
   data_set = res_preparation$data_set
+  var_y = res_preparation$var_y
   hwe_diag_outside = res_preparation$hwe_diag_outside
   ld_matrix = res_preparation$ld_matrix
   idx_joint = which(data_set$rsid %in% stepwise_results$rsid)
@@ -247,7 +250,7 @@ all_but_one = function(res_preparation, stepwise_results,p_value_threshold=0.000
     tmp_model_idx = idx_joint[combinations[,i]]
     res_step= get_joint_betas(idx_joint = tmp_model_idx, ld_matrix = ld_matrix,
                               hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside,data_set = data_set,
-                              all_but_one = T,colinear_threshold = 0.9)
+                              all_but_one = T,colinear_threshold = 0.9, var_y=var_y)
     hit = which(!(1:length(idx_joint) %in% combinations[,i]))
     all_but_one_res[[i]] = list(res_step=res_step, main_hit=as.character(data_set$rsid[idx_joint[hit]]),
                                              conditional_on=c(as.character(data_set$rsid[idx_joint[combinations[,i]]])))
