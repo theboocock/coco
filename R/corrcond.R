@@ -56,7 +56,7 @@ stepwise_conditional_run = function(data_set,ld_matrix ,p_value_threshold=0.0000
         tmp_ld_matrix = ld_matrix[of_interest,of_interest]
         neffs = data_set$neff[of_interest]
         if(any(abs(tmp_ld_matrix[1,2:ncol(tmp_ld_matrix)]) > colinear_threshold)){
-          message("Skipping SNP as co-linear with top_snps.")
+          #message("Skipping SNP as co-linear with top_snps.")
           next
         }
 
