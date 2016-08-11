@@ -1,10 +1,11 @@
+
 # Test corrcond
 
 ```{r, echo=T}
   source("R/corrcond.R")
   library(data.table)
-  ld_matrix = as.matrix(read.table("/Volumes/Elements/paintor_runs/final_regions/7_4:10802922-10909478.LD.EUR.old", header=F))
-  frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/7_4:10802922-10909478.EUR", header=F)
+  ld_matrix = as.matrix(read.table("/Volumes/Elements/paintor_runs/final_regions/13_6:25391851-26189933.LD.EUR.old", header=F))
+  frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/13_6:25391851-26189933.EUR", header=F)
   kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/input_smr.txt", header=T)
   all_af = fread("/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt", header=F)
   freq_af = merge(frequencies,all_af,by.x=3,by.y=1)
@@ -21,11 +22,14 @@
   #freq_af$se = freq_af$StdErr
   #freq_af$b = freq_af$Effect
   #stepwise_conditional_run(data_set = freq_af)
-  stepwise_conditional_wrapper(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold = 1e-3,var_y = 1.6421, ld_noise=0.1)
+  a = stepwise_conditional_wrapper(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold =1e-5,var_y = 1.6421, ld_noise=0.1)
     # Generate hwe_diagonal
+  conditional_from_ids(rsids = "")
   
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0, var_y = 1.6421)
+  df = conditional_from_ids(res_preparation = res_preparation,rsids = c("rs71557308","rs186137462","rs116399700","rs1359231","rs1165178"))
   
-  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0.1)
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0.5)
   stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-3,var_y = 1.6421)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results ,var_y=1.6421)
   
@@ -48,9 +52,6 @@
 
 ```
 
-
-
-
 # Testing with daner files and chr2_200825237_I_2merged_2_200628237_201293237
 ```{r, echo=T}
   source("R/corrcond.R")
@@ -60,11 +61,6 @@
   snpdat = read.table("data/chr2_200825237_I_2merged_2_200628237_201293237.ld.snpdat", header=T)
   daner = read.table("data/daner_PGC_SCZ52_0513a_hq2-chr2_200825237_I_2merged_2_200628237_201293237.txt", header=T)
   daner_dat = merge(daner,snpdat, by="SNP")
-  daner_dat$b <- log(daner_dat$OR)
-  daner_dat$se = daner_dat$SE
-  daner_dat$n = daner_dat$sum_n
-  colnames(daner_dat)[c(1,20,21)] = c("rsid","af","info")
-  daner_dat = daner_dat[order(daner_dat$BP.x),]
 
 
   # Run with old betas
@@ -105,6 +101,13 @@
   summary(lm(y ~ x - 1))
 
   var_y = summary(lm(y ~ x - 1))[2,1]
+  # DO IT THIS WAY (see the cojo paper):
+  estimate_vary = function(data_set){
+    yprimey = neff * se^2 * (neff-1) + neff * b^2
+    vary = yprimey/(neff-1)
+    #summary(vary)
+    return(median(vary))
+  }
   
   res_preparation = prep_dataset_common(data_set = daner_dat_new_beta,ld_matrix= ld_matrix,ld_noise=0, var_y = 0.2184498)
   stepwise_results1 = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-4)
@@ -113,7 +116,7 @@
   res_preparation_winfo = prep_dataset_common(data_set = daner_dat_new_beta,ld_matrix= ld_matrix,ld_noise=0, var_y = 0.2184498)
   stepwise_results_winfo = stepwise_conditional_run(res_preparation = res_preparation_winfo,p_value_threshold = 1e-4)
   all_but_one_df_winfo = all_but_one(res_preparation=res_preparation_winfo,stepwise_results = stepwise_results_winfo)
-  
+
   plot(all_but_one_df1[[1]]$res_step$beta_new, all_but_one_df_winfo[[1]]$res_step$beta_new)
   plot(all_but_one_df1[[1]]$res_step$beta_new/all_but_one_df1[[1]]$res_step$se_new, all_but_one_df_winfo[[1]]$res_step$beta_new/all_but_one_df_winfo[[1]]$res_step$se_new)
   plot(daner_dat_new_beta$BP.x,abs(all_but_one_df1[[1]]$res_step$beta_new/all_but_one_df1[[1]]$res_step$se_new))
@@ -123,15 +126,10 @@
   
 
   daner_dat_scaled_beta = daner_dat_new_beta
-  daner_dat_scaled_beta$b = daner_dat_scaled_beta$b * 2*daner_dat_scaled_beta$af*(1-daner_dat_scaled_beta$af)*daner_dat_scaled_beta$info
-  daner_dat_scaled_beta$se = daner_dat_scaled_beta$se * 2*daner_dat_scaled_beta$af*(1-daner_dat_scaled_beta$af)*daner_dat_scaled_beta$info
+  daner_dat_scaled_beta$b = daner_dat_scaled_beta$b * sqrt(2*daner_dat_scaled_beta$af*(1-daner_dat_scaled_beta$af)*daner_dat_scaled_beta$info)
+  daner_dat_scaled_beta$se = daner_dat_scaled_beta$se * sqrt(2*daner_dat_scaled_beta$af*(1-daner_dat_scaled_beta$af)*daner_dat_scaled_beta$info)
   
-  wrapper = function(my_data_set = NULL, ld_matrix= ld_matrix,ld_noise=0, var_y = 0.2184498,p_value_threshold = 1e-4) {
-    res_preparation_x = prep_dataset_common(data_set = my_data_set,ld_matrix= ld_matrix,ld_noise=ld_noise, var_y = var_y)
-    stepwise_results_x = stepwise_conditional_run(res_preparation = res_preparation_x,p_value_threshold = p_value_threshold)
-    all_but_one_df_scaldbeta = all_but_one(res_preparation=res_preparation_x,stepwise_results = stepwise_results_x)
-  }
-  
+ 
   res_preparation_scaldbeta = prep_dataset_common(data_set = daner_dat_new_beta,ld_matrix= ld_matrix,ld_noise=0, var_y = 0.2184498)
   stepwise_results_scaldbeta = stepwise_conditional_run(res_preparation = res_preparation_winfo,p_value_threshold = 1e-4)
   all_but_one_df_scaldbeta = all_but_one(res_preparation=res_preparationscaldbeta,stepwise_results = stepwise_results_winfo)
@@ -141,6 +139,9 @@
   plot(daner_dat_new_beta$BP.x,abs(all_but_one_df1[[1]]$res_step$beta_new/all_but_one_df1[[1]]$res_step$se_new))
   plot(daner_dat_new_beta$BP.x,abs(all_but_one_df_winfo[[1]]$res_step$beta_new/all_but_one_df_winfo[[1]]$res_step$se_new))
 
+  cond_list_rsids = c(all_but_one_df_scaldbeta[[1]]$main_hit,all_but_one_df_scaldbeta[[1]]$conditional_on)
+  cond_list_res = conditional_from_ids_wrapper(rsids=cond_list_rsids, data_set=daner_dat_scaled_beta, ld_matrix=ld_matrix, var_y = 0.2184498)
+  
   
   # Plot results
   par(mfrow=c(2,2))
