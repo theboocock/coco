@@ -3,8 +3,8 @@
 ```{r, echo=T}
   source("R/corrcond.R")
   library(data.table)
-  ld_matrix = as.matrix(read.table("/Volumes/Elements/paintor_runs/final_regions/11_5:72375077-72506696.LD.EUR.old", header=F))
-  frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/11_5:72375077-72506696.EUR", header=F)
+  ld_matrix = as.matrix(read.table("/Volumes/Elements/paintor_runs/final_regions/7_4:10802922-10909478.LD.EUR.old", header=F))
+  frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/7_4:10802922-10909478.EUR", header=F)
   kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/input_smr.txt", header=T)
   all_af = fread("/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt", header=F)
   freq_af = merge(frequencies,all_af,by.x=3,by.y=1)

@@ -178,7 +178,7 @@ stepwise_conditional_run = function(res_preparation,p_value_threshold=0.0001,col
     }
     res_step= get_joint_betas(idx_joint = idx_cond, ld_matrix = ld_matrix,
                               hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside,data_set = data_set,
-                              all_but_one = F,colinear_threshold = 0.9, var_y=var_y)
+                             colinear_threshold = 0.9, var_y=var_y)
     res_step$Znew = res_step$beta_new/res_step$se_new
     idx_top_tmp = which(max(abs(res_step$Znew),na.rm=T) == abs(res_step$Znew))
     best_cond_row = res_step[idx_top_tmp,]
