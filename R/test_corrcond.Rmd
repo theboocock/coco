@@ -64,6 +64,7 @@
 
 
   # Run with old betas
+  source("R/corrcond.R")
   res_preparation = prep_dataset_common(data_set = daner_dat,ld_matrix= ld_matrix,ld_noise=0, var_y = 3.7288262)
   stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-4)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results)
