@@ -4,33 +4,37 @@
 ```{r, echo=T}
   source("R/corrcond.R")
   library(data.table)
-  ld_matrix = as.matrix(read.table("/Volumes/Elements/paintor_runs/final_regions/13_6:25391851-26189933.LD.EUR.old", header=F))
-  frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/13_6:25391851-26189933.EUR", header=F)
-  kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/input_smr.txt", header=T)
+  ld_matrix = as.matrix(fread("/Volumes/Elements/paintor_runs/final_regions/6_4:9363105-10773602.LD.EUR.old", header=F))
+  frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/6_4:9363105-10773602.EUR", header=F)
+  kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/data/kottgen_effect_filtered.txt", header=T)
   all_af = fread("/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt", header=F)
   freq_af = merge(frequencies,all_af,by.x=3,by.y=1)
+ 
   colnames(freq_af) = c("rsid","chr","pos","Z","chr1","pos1","a1","a2","pop1","af")
+  freq_af = freq_af[order(freq_af$pos),]
   freq_af$af = as.numeric(freq_af$af)
   
-    idxs_with_betas = which(freq_af$rsid %in% kottgen_meta_analysis$SNP)
+  idxs_with_betas = which(freq_af$rsid %in% kottgen_meta_analysis$MarkerName)
   #freq_af = merge(freq_af,kottgen_meta_analysis,by=1)
   ld_matrix= ld_matrix[idxs_with_betas,idxs_with_betas]
   freq_af = freq_af[idxs_with_betas,]
+  
   freq_af = merge(freq_af,kottgen_meta_analysis,by=1)
   freq_af = freq_af[order(freq_af$pos),]
+   freq_af$Effect = ifelse(toupper(freq_af$Allele1) == freq_af$a1, freq_af$Effect, -freq_af$Effect)
   #freq_af$n = freq_af$TotalSampleSize
   #freq_af$se = freq_af$StdErr
   #freq_af$b = freq_af$Effect
   #stepwise_conditional_run(data_set = freq_af)
-  a = stepwise_conditional_wrapper(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold =1e-5,var_y = 1.6421, ld_noise=0.1)
+  a = stepwise_conditional_wrapper(data_set = freq_af, ld_matrix=ld_matrix,p_value_threshold =1e-5,var_y = 1.6421, ld_noise=0)
     # Generate hwe_diagonal
   conditional_from_ids(rsids = "")
   
   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0, var_y = 1.6421)
   df = conditional_from_ids(res_preparation = res_preparation,rsids = c("rs71557308","rs186137462","rs116399700","rs1359231","rs1165178"))
   
-  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0.5)
-  stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-3,var_y = 1.6421)
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0,var_y = 1.6421)
+  stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.05)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results ,var_y=1.6421)
   
 
@@ -65,11 +69,13 @@
 
   # Run with old betas
   source("R/corrcond.R")
+  # Run step by step.
   res_preparation = prep_dataset_common(data_set = daner_dat,ld_matrix= ld_matrix,ld_noise=0, var_y = 3.7288262)
   stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-4)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results)
-  
-  
+  a = conditional_from_ids(c("chr2_200825237_I"),res_preparation = res_preparation)
+ 
+  stepwise_conditional_wrapper()
   # Plot results
   par(mfrow=c(2,2))
   ylim.plot = c(0,max(abs(daner_dat$b/daner_dat$se)))

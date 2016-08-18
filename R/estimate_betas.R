@@ -13,7 +13,7 @@
 ##'
 ##'
 
-logistic_to_linear = function(b, se, phi, ref_af, mu){
+logistic_to_linear = function(b, z, phi, ref_af, mu){
   mu=phi # ??
   B =  (0.5*(1-2*phi) * (1 - 2*ref_af) * b -1)
   A = - (0.084 + 0.9 * phi * (1-2 * phi) * ref_af * (1-ref_af)) * b
@@ -22,17 +22,12 @@ logistic_to_linear = function(b, se, phi, ref_af, mu){
   x2 = (-B - sqrt( B^2 - 4 * A * C  ))/(2*A)
   ## Always x2 ??
   beta = x2 # inverse of GWAS_approximation
+  print(x2[1])
   alpha = log(mu/(1-mu))
-  beta =  beta * exp(alpha)/(1+exp(alpha)) # FOA
-  B =  (0.5*(1-2*phi) * (1 - 2*ref_af) * b -1)
-  A = - (0.084 + 0.9 * phi * (1-2 * phi) * ref_af * (1-ref_af)) * b
-  C = b
-  x1 = (-B+ sqrt( B^2 - 4 * A * C  ))/(2*A)
-  x2 = (-B - sqrt( B^2 - 4 * A * C  ))/(2*A)
+  beta =  beta * exp(alpha)/((1+exp(alpha))^2) # FOA
   ## Always x2 ??
-  se = x2
-  se = se * exp(alpha)/(1+exp(alpha)) # FOA
-  return(c(beta,se))
+  se = beta / z
+  return(cbind(beta,se))
 }
 
 linear_to_logistic =  function(b, se, gamma,phi,theta){

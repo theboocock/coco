@@ -1,0 +1,23 @@
+```{r, echo=T}
+  source("R/corrcond.R")
+  library(data.table)
+  source("R/symmetrcize.R")
+  source("R/estimate_betas.R")
+  ld_matrix = as.matrix(fread("data/CM6_Cauc-NEK1_imputed-LDcorr5523.ld", header=F))
+  ld_matrix = symmetricize(ld_matrix)
+  frequencies = read.table("data/CM6_Cauc-NEK1_imputed-LDcorr5523.snpdat", header=T)
+  corr = read.table("data/forCoco_logistic", header=T)
+  freq_af = merge(corr,frequencies,by=1)
+  freq_af = freq_af[order(freq_af$POS),]
+  new_betas = logistic_to_linear(b = freq_af$beta, freq_af$Z,phi = 0.670354, ref_af=freq_af$FREQ1)
+  freq_af$beta =  new_betas[,1]
+  freq_af$se = new_betas[,2]
+  alpha = log(.67/(1-.67))
+    #alpha = log(.33/(1-.33))
+  
+  betas = freq_af$beta*exp(alpha)/((1+ exp(alpha))^2)
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix)
+  stepwise_results2 = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.9)
+  all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results )
+  
+```
