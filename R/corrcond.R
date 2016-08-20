@@ -46,7 +46,7 @@ conditional_from_ids = function(rsids, res_preparation, idxs,return_only_these=F
       out_tmp = step_conditional(betas= data_set$b[rsid_idx],ld_matrix = ld_matrix[rsid_idx,rsid_idx],
                         neffs=data_set$neff[rsid_idx],hwe_diag_outside = hwe_diag_outside[rsid_idx],
                         var_y = var_y,return_entire_beta_set = T,hwe_diag = hwe_diag[rsid_idx])
-      to_return = data_set[rsid_idx,], out_tmp/sqrt(data_set$var[rsid_idx]),2*pnorm(abs(out_tmp[,1]/out_tmp[,2]),lower.tail = F))
+      to_return = cbind(data_set[rsid_idx,], out_tmp/sqrt(data_set$var[rsid_idx]),2*pnorm(abs(out_tmp[,1]/out_tmp[,2]),lower.tail = F))
       colnamse(to_return) = c(colnames(data_set), "beta_new","se_new","p_new")
       return(to_return)
   }else{
