@@ -1,3 +1,20 @@
+##' corrocond - cojo module of coco.
+##'
+##' Coco's functions for implementing the GCTA-cojo in R.
+##' 
+##' Currently only includes the joint modelling approach. 
+##' 
+##' TODO: implement the conditional selection approach in the GCTA paper.
+##' 
+##' 
+##' 
+##' @author James Boocock
+##' @date Aug 19th 2017
+##' @citation Yang, Jian, et al. "Conditional and joint multiple-SNP analysis of GWAS summary statistics identifies additional variants 
+##'           influencing complex traits." Nature genetics (2012)
+
+
+
 ##' Stepwise conditional wrapper
 ##'
 ##' Generate conditional signals from a specific set of SNPs
@@ -9,7 +26,7 @@
 ##' @param data_set data.frame. Contains the relevant
 ##' @param ld_matrix
 
-conditional_from_ids = function(rsids, res_preparation, idxs){
+conditional_from_ids = function(rsids, res_preparation, idxs,return_only_these=F){
   hwe_diag = res_preparation$hwe_diag
   data_set = res_preparation$data_set
   hwe_diag_outside = res_preparation$hwe_diag_outside
@@ -25,12 +42,21 @@ conditional_from_ids = function(rsids, res_preparation, idxs){
   if(length(rsid_idx) == 0){
     stop("No rsids or indexes to conditional on were found")
   }
-  res_step= get_joint_betas(idx_joint = rsid_idx, ld_matrix = ld_matrix,
+  if(return_only_these){
+      out_tmp = step_conditional(betas= data_set$b[rsid_idx],ld_matrix = ld_matrix[rsid_idx,rsid_idx],
+                        neffs=data_set$neff[rsid_idx],hwe_diag_outside = hwe_diag_outside[rsid_idx],
+                        var_y = var_y,return_entire_beta_set = T,hwe_diag = hwe_diag[rsid_idx])
+      to_return = data_set[rsid_idx,], out_tmp/sqrt(data_set$var[rsid_idx]),2*pnorm(abs(out_tmp[,1]/out_tmp[,2]),lower.tail = F))
+      colnamse(to_return) = c(colnames(data_set), "beta_new","se_new","p_new")
+      return(to_return)
+  }else{
+    res_step= get_joint_betas(idx_joint = rsid_idx, ld_matrix = ld_matrix,
                   hwe_diag = hwe_diag, hwe_diag_outside = hwe_diag_outside, data_set = data_set,
                   colinear_threshold = 0.9,var_y=var_y)
-  res_step = list(res_step=res_step, main_hit=NA,
+      res_step = list(res_step=res_step, main_hit=NA,
        conditional_on=c(as.character(data_set$rsid[rsid_idx])))
-  return(res_step)
+    return(res_step)
+  }
 }
 ##'
 ##' Estimate the variance in Y using the cojo method.
@@ -49,9 +75,8 @@ conditional_from_ids = function(rsids, res_preparation, idxs){
 
 estimate_vary = function(data_set){
   vars  =data_set$var *(data_set$n) * data_set$se ^2 * (data_set$n -1)  +  data_set$var * (data_set$n) * data_set$b^2
-  vars = vars
-  print(paste("Var y = ",median(vars/data_set$n)))
-  return(median(vars))
+  print(paste("Var y = ",median(vars/(data_set$n-1))))
+  return(median(vars/(data_set$n-1)))
 }
 
 
@@ -104,7 +129,7 @@ conditional_from_ids_wrapper = function(data_set ,ld_matrix, rsids=NULL, idxs=NU
 ##' @title stepwise_conditional
 ##' @param data_set
 ##'
-prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
+prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance=F){
     if(missing(data_set)){
       stop("Must specify a data_set argument")
     }
@@ -170,7 +195,7 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
       colnames(data_set)[p] = "p"
     }
     var = which(grepl("^VAR$", names(data_set), ignore.case= T))[1]
-    if(length(var) !=0){
+    if(length(var) ==0 || hwe_variance){
       data_set$var = 2*data_set$af*(1-data_set$af)*data_set$info
     }else{
       data_set$var = data_set[,var]
@@ -179,18 +204,22 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0){
       message("Var_y missing, will estimate using cojo method")
       var_y = estimate_vary(data_set)
     }
-
+    #var_y = 4.52020627198678
     #order the dataset on the position column
     data_set = data_set[order(data_set$pos),]
     data_set$b = data_set$b * sqrt(data_set$var)
     data_set$se = data_set$se * sqrt(data_set$var)
     #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$n)
-    hwe_diag =  ( data_set$n)
-
-    data_set$neff = (var_y) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
-    #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$neff)
+    hwe_diag =  ( data_set$n -1)
+    
+    #data_set$neff = (var_y) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
+   # data_set$neff = (var_y) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
+    data_set$neff = (median(var_y*hwe_diag)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
     hwe_diag =  data_set$neff
-    #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
+   # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
+  #  ld_matrix = ld_matrix[idxs,idxs]
+  #  data_set = data_set[idxs,]
+  #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
     hwe_diag_outside =  rep(1, times=nrow(data_set))
     #print(data_set$neff)
     if(ld_noise != 0){
@@ -277,7 +306,7 @@ stepwise_conditional_run = function(res_preparation,p_value_threshold=0.0001,col
 ##' @param hwe_diag Diagonal matrix containing the genotypic variance *n
 ##' @return Joint betas and standard errors.
 
-step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag){
+step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag,return_entire_beta_set=F){
   inside =  ld_matrix
   n_betas = length(betas)
   outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
@@ -286,9 +315,9 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
       if(k > ncol(outside)){
         break
       }
-      outside[j,k] = min(neffs[c(j,k)]) *  outside[j,k]
+      outside[j,k] = min(neffs[c(j,k)]) *  outside[j,k] 
       if(k!=j){
-        outside[k,j] = min(neffs[c(j,k)]) * outside[k,j]
+        outside[k,j] = min(neffs[c(j,k)]) * outside[k,j] 
       }
     }
   }
@@ -299,12 +328,15 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   #print(beta_inv)
   # We only really care about the results from the first SNP
   #because that's our SNP we are adding to the model
-  vars = (var_y - t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (neffs[1] - n_betas)
-
-  ses = sqrt(diag(vars[1] * beta_inv))
+ # vars = (var_y - t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (md(neffs[1]) - n_betas)
+  #print(vars)
+  ses = sqrt(diag(var_y * beta_inv))
   #print(ses)
-  #print(ses)
+  if(return_entire_beta_set){
+    return(cbind(new_betas[,1],ses))  
+  }else{
   return(c(new_betas[1,1],ses[1]))
+  }
 }
 
 
