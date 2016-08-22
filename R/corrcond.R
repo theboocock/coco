@@ -194,10 +194,11 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance
     } else {
       colnames(data_set)[p] = "p"
     }
-    var = which(grepl("^VAR$", names(data_set), ignore.case= T))[1]
-    if(length(var) ==0 || hwe_variance){
+    var = which(grepl("^GVAR$", names(data_set), ignore.case= T))[1]
+    if(is.na((var))|| hwe_variance){
       data_set$var = 2*data_set$af*(1-data_set$af)*data_set$info
     }else{
+      print(var)
       data_set$var = data_set[,var]
     }
     if(missing(var_y)){

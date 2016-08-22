@@ -11,7 +11,11 @@
   freq_af = merge(corr,frequencies,by=1)
   freq_af = freq_af[order(freq_af$POS),]
   log_results =compare_logistic_results(freq_af,ld_matrix , dos_data)
-  write.table("data/logistic_testing_output.txt", row.names=F, quote=F)
+  lin_results = compare_linear_results(freq_af, ld_matrix, dos_data)
+  write.table(log_results,file="data/logistic_testing_output.txt", row.names=F, quote=F)
+  
+  
+  
   library(plink2R)
   dat = read_plink("data/CM6_Cauc-NEK1_imputed_plink452_5523")
  # freq_af$VAR = apply(dat$bed,2,function(x){var,na.rm=T})
@@ -19,6 +23,7 @@
   
   betas = freq_af$beta*exp(alpha)/((1+ exp(alpha))^2)
   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = F)
+  
   stepwise_results2 = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.9)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results )
   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = T)
