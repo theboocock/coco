@@ -42,7 +42,7 @@ linear_to_logistic =  function(b, se, gamma,phi,theta){
   
   gamma = b/(((phi*(1-phi)) + 0.5*(1-2*phi) * (1 - 2*theta) * b) - (0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) /(phi*(1-phi))* b^2)
   se_fist = se^2* (1/(mu*(1-mu)))^2
-  se_second = sqrt(se_fist * ((0.5*(1-2*phi) * (1 - 2*theta) * gamma_flat) -((0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) *gamma_flat * 2)  + 1 ) ^2 )
+  se_second = sqrt(se_fist * ((0.5*(1-2*phi) * (1 - 2*theta) * gamma_flat) -((0.084 + 0.9 * phi * (1-2 * phi) * theta * (1-theta)) *gamma_flat * 2 * gamma)  + 1 ) ^2 )
   se_fist = sqrt(se_fist)
   return(cbind(gamma,se_fist,se_second))
 }

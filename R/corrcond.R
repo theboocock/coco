@@ -74,9 +74,11 @@ conditional_from_ids = function(rsids, res_preparation, idxs,return_only_these=F
 ##'
 
 estimate_vary = function(data_set){
-  vars  =data_set$var *(data_set$n) * data_set$se ^2 * (data_set$n -1)  +  data_set$var * (data_set$n) * data_set$b^2
-  print(paste("Var y = ",median(vars/(data_set$n-1))))
-  return(median(vars/(data_set$n-1)))
+  vars=data_set$var *(data_set$n) * data_set$se ^2 * (data_set$n -1)  +  data_set$var * (data_set$n) * data_set$b^2
+  print(paste("Var y = ",median(vars/(data_set$n -1))))
+ # return(median(vars/(data_set$n-1)))
+  #print(vars)
+  return(median(vars)/(data_set$n-1))
 }
 
 
@@ -208,20 +210,22 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance
     #var_y = 4.52020627198678
     #order the dataset on the position column
     data_set = data_set[order(data_set$pos),]
-    data_set$b = data_set$b * sqrt(data_set$var)
-    data_set$se = data_set$se * sqrt(data_set$var)
-    #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$n)
-    hwe_diag =  ( data_set$n -1)
     
+   # data_set$b = data_set$b * sqrt(data_set$var)
+  #  data_set$se = data_set$se * sqrt(data_set$var)
+    #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$n)
+    hwe_diag =  ( data_set$n - 1) * data_set$var
+   # hwe_diag =  ( data_set$n -1)
     #data_set$neff = (var_y) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
-   # data_set$neff = (var_y) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
-    data_set$neff = (median(var_y*hwe_diag)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
-    hwe_diag =  data_set$neff
+    data_set$neff = (var_y* (data_set$n-1)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
+    #data_set$neff = (median(var_y*hwe_diag)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
+    #hwe_diag =  data_set$n
+    hwe_diag =  (data_set$neff - 1) * data_set$var
    # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
   #  ld_matrix = ld_matrix[idxs,idxs]
   #  data_set = data_set[idxs,]
   #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
-    hwe_diag_outside =  rep(1, times=nrow(data_set))
+    hwe_diag_outside = data_set$var * (data_set$neff -1)
     #print(data_set$neff)
     if(ld_noise != 0){
       ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))]  = ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))] + ld_noise
@@ -311,6 +315,7 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   inside =  ld_matrix
   n_betas = length(betas)
   outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
+  #print(outside)
   for(j in 1:ncol(outside)){
     for(k in (j):ncol(outside)){
       if(k > ncol(outside)){
@@ -318,20 +323,25 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
       }
       outside[j,k] = min(neffs[c(j,k)]) *  outside[j,k] 
       if(k!=j){
-        outside[k,j] = min(neffs[c(j,k)]) * outside[k,j] 
+        outside[k,j] =  min(neffs[c(j,k)]) * outside[k,j] 
       }
     }
   }
   #print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
+#  beta_inv = chol2inv(chol(outside))
+  outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
+  #print(outside)
+  
   beta_inv = chol2inv(chol(outside))
+  beta_inv= (solve(outside))
   #print(betas)
   new_betas = beta_inv %*% diag(hwe_diag) %*% betas
   #print(beta_inv)
   # We only really care about the results from the first SNP
   #because that's our SNP we are adding to the model
- # vars = (var_y - t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (md(neffs[1]) - n_betas)
+  vars = (var_y * (median(neffs) -1)- t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (median(neffs) - n_betas - 1)
   #print(vars)
-  ses = sqrt(diag(var_y * beta_inv))
+  ses = sqrt(diag(vars[1] * beta_inv))
   #print(ses)
   if(return_entire_beta_set){
     return(cbind(new_betas[,1],ses))  
@@ -366,12 +376,13 @@ get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outsi
       n_snps_skipped = n_snps_skipped + 1
       next
     }
+    
     hwe_diag_outside_tmp = hwe_diag_outside[of_interest]
     hwe_diag_tmp = hwe_diag[of_interest]
     cond_results = step_conditional(betas, tmp_ld_matrix, neffs,var_y, hwe_diag_outside_tmp,hwe_diag_tmp)
 
-    res_step$beta_new[j]= cond_results[1]
-    res_step$se_new[j]= cond_results[2]
+    res_step$beta_new[j]= cond_results[1] 
+    res_step$se_new[j]= cond_results[2] 
     res_step$z_new[j]= res_step$beta_new[j]/res_step$se_new[j]
     res_step$p_new[j] = 2 * pnorm(abs(res_step$beta_new[j]/res_step$se_new[j]), lower.tail = F)
   }
