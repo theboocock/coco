@@ -6,7 +6,7 @@
   ld_matrix = as.matrix(fread("data/CM6_Cauc-NEK1_imputed-LDcorr5523.ld", header=F))
   ld_matrix = symmetricize(ld_matrix)
   frequencies = read.table("data/CM6_Cauc-NEK1_imputed-LDcorr5523.snpdat", header=T)
-  corr = read.table("data/forCoco2", header=T)
+  corr = read.table("data/forCoco1", header=T)
   dos_data = setDF(fread("data/NEK1_Cauc_452_dos.txt", header=T))
   table(dos_data$ENSG00000137601 > 6)
   freq_af = merge(corr,frequencies,by=1)
@@ -37,22 +37,36 @@
   freq_af$N = freq_af$N - t(t(apply(dat$bed,2,function(x){sum(is.na(x))}))) #alpha = log(.33/(1-.33))
   
   betas = freq_af$beta*exp(alpha)/((1+ exp(alpha))^2)
-  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance =F,var_y=0.01943165149)
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance =F)
   rsids =10:ncol(dos_data)
     beta_unadj =c()
     se_unadj = c()
     gvars =c()
+  #  dos_data$ENSG00000137601 = dos_data$ENSG00000137601 > -0.06102
     for(j in rsids){
-      m1 = summary(lm(scale(dos_data$ENSG00000137601,scale = F) ~ -1+ scale(dos_data[,j], scale = F)))
-      beta_unadj = c(beta_unadj,coef(m1)[1,1])
-      se_unadj = c(se_unadj,coef(m1)[1,2])
+      m1 = summary(glm(scale(dos_data$ENSG00000137601, scale=F) ~ scale(dos_data[,j], scale = F)))
+      beta_unadj = c(beta_unadj,coef(m1)[2,1])
+      se_unadj = c(se_unadj,coef(m1)[2,2])
       gvars  = c(gvars, var(dos_data[,j]))
     }
   freq_af$beta = beta_unadj
   freq_af$se = se_unadj
   freq_af$GVAR = gvars
   
-   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = F,var_y=0.01943165)
+  freq_af= freq_af[which(freq_af$SNP %in% c("rs4417927","rs10520157")),]
+  #ld_matrix2 = ld_matrix[which(freq_af$SNP %in% c("rs4417927","rs10520157")),which(freq_af$SNP %in% c("rs4417927","rs10520157"))]
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix2,hwe_variance = F,var_y=0.019431651487353568397,exact = T)
+  
+   
+  df = conditional_from_ids(rsids = "rs10520157", res_preparation)
+  test_beta_exact = df$res_step[df$res_step$rsid == "rs4417927",]$z_new
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix2,hwe_variance = F,var_y=0.019431651487353568397,exact = F)
+    df = conditional_from_ids(rsids = "rs10520157", res_preparation)
+  test_beta_no_exact = df$res_step[df$res_step$rsid == "rs4417927",]$z_new
+   z_true = 0.049059954168752958892/0.0081518316873291658126
+  
+  print(test_beta_no_exact - z_true )
+  print(test_beta_exact - z_true )
   
   stepwise_results2 = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.9)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results2)
@@ -140,5 +154,5 @@
   
   compare_logistic_results(freq_af,ld_matrix , dos_data)
   
-  
+  0.1163 * 0.5007751  /(982917*0.04260707) - (0.1163-0.1163 * 0.5007751)/(982917 - (982917*0.04260707))
   

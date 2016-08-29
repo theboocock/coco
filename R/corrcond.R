@@ -78,7 +78,7 @@ estimate_vary = function(data_set){
   print(paste("Var y = ",median(vars/(data_set$n -1))))
  # return(median(vars/(data_set$n-1)))
   #print(vars)
-  return(median(vars)/(data_set$n-1))
+  return(median(vars/(data_set$n-1)))
 }
 
 
@@ -131,7 +131,7 @@ conditional_from_ids_wrapper = function(data_set ,ld_matrix, rsids=NULL, idxs=NU
 ##' @title stepwise_conditional
 ##' @param data_set
 ##'
-prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance=F){
+prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance=F,exact=F){
     if(missing(data_set)){
       stop("Must specify a data_set argument")
     }
@@ -139,7 +139,7 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance
       stop("Must specify an ld_matrix argument on the command-line")
     }
 
-    message("Preparing the dataset for a  conditional analysis")
+    message("Preparing the dataset for coco")
     id = which(grepl("^SNP$|^rsid$", names(data_set), ignore.case = T))
     if(length(id) == 0){
       stop("RSID column not found")
@@ -176,12 +176,7 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance
     }
     colnames(data_set)[n] = "n"
 
-    info = which(grepl("INFO|RSQ", names(data_set),  ignore.case = T))
-    if(length(info) == 0){
-      message("Info column not found assuming HWE genotypic variance")
-      data_set$info = 1
-    }
-    colnames(data_set)[info] = "info"
+    
 
     z = which(grepl("^Z$|zscore", names(data_set),  ignore.case = T))
     if(length(z) ==0){
@@ -198,19 +193,41 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance
     }
     var = which(grepl("^GVAR$", names(data_set), ignore.case= T))[1]
     if(is.na((var))|| hwe_variance){
-      data_set$var = 2*data_set$af*(1-data_set$af)*data_set$info
+      var_flag_hwe = T
+      data_set$var = 2*data_set$af*(1-data_set$af)
     }else{
-      print(var)
+      var_flag_hwe = F
       data_set$var = data_set[,var]
     }
     if(missing(var_y)){
       message("Var_y missing, will estimate using cojo method")
       var_y = estimate_vary(data_set)
     }
+    info = which(grepl("INFO|RSQ", names(data_set),  ignore.case = T))
+    if(length(info) != 0){
+      if(var_flag_hwe){
+        message("Info column not found assuming HWE genotypic variance")
+      }
+    }else{
+      if(var_flag_hwe){
+        colnames(data_set)[info] = "info"
+        message("Info column not found usingin combination with HWE to estimate genotypic variance")
+        data_set$var = data_set$var * data_set$info
+      }
+    }
+    if(exact){
+      # Check for the columns needed by excat. 
+      gvar_present = !is.na(var)
+      if(!gvar_present){
+        stop("Can not perform an exact analysis if GVAR is missing.")
+      }
+      message("   Performing an exact analysis, assuming the genotypic variance has been calculated
+   from the hard-called or dossage-based LD matrix that was used to generate the association statistics. \n
+   GVAR column is assumed to have been calculated directly from the data.")
+    }
     #var_y = 4.52020627198678
     #order the dataset on the position column
     data_set = data_set[order(data_set$pos),]
-    
    # data_set$b = data_set$b * sqrt(data_set$var)
   #  data_set$se = data_set$se * sqrt(data_set$var)
     #hwe_diag =  (2*data_set$af * ( 1- data_set$af) * data_set$info * data_set$n)
@@ -220,12 +237,21 @@ prep_dataset_common = function(data_set,ld_matrix,var_y, ld_noise=0,hwe_variance
     data_set$neff = (var_y* (data_set$n-1)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
     #data_set$neff = (median(var_y*hwe_diag)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
     #hwe_diag =  data_set$n
-    hwe_diag =  (data_set$neff - 1) * data_set$var
+    if(exact){
+    hwe_diag =  (data_set$n -1 ) * data_set$var
    # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
   #  ld_matrix = ld_matrix[idxs,idxs]
   #  data_set = data_set[idxs,]
   #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
-    hwe_diag_outside = data_set$var * (data_set$neff -1)
+    hwe_diag_outside = data_set$var * (data_set$n - 1)
+    }else{
+      hwe_diag =  (data_set$neff) * data_set$var
+      # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
+      #  ld_matrix = ld_matrix[idxs,idxs]
+      #  data_set = data_set[idxs,]
+      #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
+      hwe_diag_outside = data_set$var * (data_set$neff)
+    }
     #print(data_set$neff)
     if(ld_noise != 0){
       ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))]  = ld_matrix[cbind(1:nrow(ld_matrix),1:nrow(ld_matrix))] + ld_noise
@@ -330,7 +356,6 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   #print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
 #  beta_inv = chol2inv(chol(outside))
   outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
-  #print(outside)
   
   beta_inv = chol2inv(chol(outside))
   beta_inv= (solve(outside))
@@ -339,10 +364,10 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   #print(beta_inv)
   # We only really care about the results from the first SNP
   #because that's our SNP we are adding to the model
-  vars = (var_y * (median(neffs) -1)- t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (median(neffs) - n_betas - 1)
-  #print(vars)
+
+  vars = (var_y * (median(neffs) -1)- t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (median(neffs) - n_betas -1)
   ses = sqrt(diag(vars[1] * beta_inv))
-  #print(ses)
+
   if(return_entire_beta_set){
     return(cbind(new_betas[,1],ses))  
   }else{
@@ -370,7 +395,7 @@ get_joint_betas = function(idx_joint,data_set,ld_matrix, hwe_diag,hwe_diag_outsi
     of_interest = c(j, idx_joint)
     betas = data_set$b[of_interest]
     tmp_ld_matrix = ld_matrix[of_interest,of_interest]
-    neffs = data_set$neff[of_interest]
+    neffs = data_set$n[of_interest]
     if(any(abs(tmp_ld_matrix[1,2:ncol(tmp_ld_matrix)]) > colinear_threshold)){
       # message("Skipping SNP as co-linear with top_snps.")
       n_snps_skipped = n_snps_skipped + 1

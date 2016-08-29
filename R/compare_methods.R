@@ -94,12 +94,12 @@ compare_results = function(freq_af, ld_matrix,dos_data, lin=T){
   res.out= data.frame()
   tmp_ensg = scale(dos_data$ENSG00000137601, scale = F)
   dos_data$rs10520157 = scale(dos_data$rs10520157, scale = F)
-  for(i in seq(0.8,0,by=-0.1)){
+  for(i in seq(0.1,0,by=-0.025)){
     correlations= c()
     rsids =10:ncol(dos_data)
     betas = c()
     ses = c()
-    dos_data$ENSG00000137601 = tmp_ensg + rnorm(n = nrow(dos_data),0,i)
+   # dos_data$ENSG00000137601 = tmp_ensg + rnorm(n = nrow(dos_data),0,i)
     dos_data$ENSG00000137601 = scale(dos_data$ENSG00000137601,scale = F)
     if(!lin){
       dos_data$ENSG00000137601 = dos_data$ENSG00000137601 > -0.06102
@@ -108,7 +108,7 @@ compare_results = function(freq_af, ld_matrix,dos_data, lin=T){
     if(!lin){
       m1 = summary(glm(dos_data$ENSG00000137601 ~ -1 + dos_data$rs10520157,family=binomial) )
     }else{
-      m1 = summary(lm(dos_data$ENSG00000137601 ~ -1 + dos_data$rs10520157))
+      m1 = summary(lm(scale(dos_data$ENSG00000137601, scale = F) ~  scale(dos_data$rs10520157,scale = F)))
     }
   
     p_value = coef(m1)[1,4]
@@ -120,11 +120,11 @@ compare_results = function(freq_af, ld_matrix,dos_data, lin=T){
       if(!lin){
         m1 = summary(glm(dos_data$ENSG00000137601 ~ -1 + scale(dos_data$rs10520157,scale=F) + scale(dos_data[,j], scale = F),family=binomial))
       }else{
-        m1 = summary(lm(dos_data$ENSG00000137601 ~ -1 + scale(dos_data$rs10520157,scale=F) + scale(dos_data[,j], scale = F)))
+        m1 = summary(lm(scale(dos_data$ENSG00000137601,scale = F) ~ scale(dos_data$rs10520157,scale=F) + scale(dos_data[,j], scale = F)))
       }
       if (colnames(dos_data)[j] != "rs10520157"){
-        betas = c(betas,coef(m1)[2,1])
-        ses = c(ses,coef(m1)[2,2])
+        betas = c(betas,coef(m1)[3,1])
+        ses = c(ses,coef(m1)[3,2])
       }else{
         betas = c(betas,NA)
         ses = c(ses,NA)
@@ -137,11 +137,11 @@ compare_results = function(freq_af, ld_matrix,dos_data, lin=T){
       if(!lin){
         m1 = summary(glm(dos_data$ENSG00000137601 ~ -1+ scale(dos_data[,j],scale = F),family=binomial))
       }else{
-        m1 = summary(lm(dos_data$ENSG00000137601 ~ -1+ scale(dos_data[,j],scale = F)))
+        m1 = summary(lm(scale(dos_data$ENSG00000137601,scale = F) ~ scale(dos_data[,j],scale = F)))
       }
     
-      beta_unadj = c(beta_unadj,coef(m1)[1,1])
-      se_unadj = c(se_unadj,coef(m1)[1,2])
+      beta_unadj = c(beta_unadj,coef(m1)[2,1])
+      se_unadj = c(se_unadj,coef(m1)[2,2])
       gvars  = c(gvars, var(dos_data[,j]))
     }
     freq_af$beta = beta_unadj
@@ -161,15 +161,56 @@ compare_results = function(freq_af, ld_matrix,dos_data, lin=T){
     g = cbind(df$res_step$beta_new, betas)
     g = g[!is.na(g[,1]),]
     correlations = c(correlations, cor(g[,1],g[,2], method="pearson"))
-    res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = T)
+    res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = T,var_y=)
     df = conditional_from_ids(rsids = "rs10520157", res_preparation)
     g = cbind(df$res_step$beta_new, betas)
     g = g[!is.na(g[,1]),]
     correlations = c(correlations, cor(g[,1],g[,2], method="pearson"))
-    res.out = (rbind(res.out,c(var_y,p_value, correlations)))
+  
     print(correlations)
+    if(!lin){
+      new_betas = logistic_to_linear(b = freq_af$beta, freq_af$se,phi = gg, ref_af=freq_af$FREQ1)
+      freq_af$beta =  new_betas[,1]
+      freq_af$se = new_betas[,2]
+      freq_af$Z = freq_af$beta/freq_af$se
+      
+      res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = F)
+      #runthese
+      res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance =F,var_y=0.01943165149)
+      df = conditional_from_ids(rsids = "rs10520157", res_preparation)
+      g = cbind(df$res_step$beta_new, betas,df$res_step$se_new,ses)
+      g[2330,]  
+    
+      g = cbind(df$res_step$beta_new, betas)
+      g = cbind(df$res_step$beta_new, betas)
+      g = g[!is.na(g[,1]),]
+      correlations = c(correlations, cor(g[,1],g[,2], method="pearson"))
+      g3 = linear_to_logistic(b = df$res_step$beta_new,df$res_step$se_new, phi=gg, theta=freq_af$FREQ1)
+      g = cbind(betas/ses, g3[,1]/g3[,2])
+      g = g[!is.na(g[,1]),]
+      correlations = c(correlations, cor(g[,1],g[,2], method="pearson"))
+      
+      res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = T)
+      df = conditional_from_ids(rsids = "rs10520157", res_preparation)
+      g = cbind(df$res_step$beta_new, betas)
+      
+      g = g[!is.na(g[,1]),]
+      correlations = c(correlations, cor(g[,1],g[,2], method="pearson"))
+      g3 = linear_to_logistic(b = df$res_step$beta_new,df$res_step$se_new, phi=gg, theta=freq_af$FREQ1)
+      g = cbind(betas/ses, g3[,1]/g3[,2])
+      g = g[!is.na(g[,1]),]
+      correlations = c(correlations, cor(g[,1],g[,2], method="pearson"))
+      res.out = (rbind(res.out,c(var_y,p_value, correlations)))
+     
+    }  
+    print(correlations)
+    res.out = (rbind(res.out,c(var_y,p_value, correlations)))
   }
-  colnames(res.out) = c("Var_bin", "rs10520157","no_step","step_no_convert","step_no_convert_hwe")
-  rownames(res.out) =  seq(0.8,0,by=-0.1)
+  if(!lin){
+    colnames(res.out) = c("Var_bin", "rs10520157","no_step","step_no_convert","step_log_to_lin","step_no_convert_hwe","step_log_to_lin_hwe") 
+  }else{
+    colnames(res.out) = c("Var_bin", "rs10520157","no_step","step_no_convert","step_no_convert_hwe")
+  }
+  rownames(res.out) = seq(0.1,0,by=-0.025)
   return(res.out) 
 }
