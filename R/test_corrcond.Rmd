@@ -6,7 +6,7 @@
   library(data.table)
   ld_matrix = as.matrix(fread("/Volumes/Elements/paintor_runs/final_regions/6_4:9363105-10773602.LD.EUR.old", header=F))
   frequencies = read.table("/Volumes/Elements/paintor_runs/final_regions/6_4:9363105-10773602.EUR", header=F)
-  kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/data/kottgen_effect_filtered.txt", header=T)
+  kottgen_meta_analysis = fread("~/Dunedin/Tony/Metanalysis/input_smr.txt", header=T)
   all_af = fread("/Volumes/Elements/ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/all_af.txt", header=F)
   freq_af = merge(frequencies,all_af,by.x=3,by.y=1)
  
@@ -21,7 +21,7 @@
   
   freq_af = merge(freq_af,kottgen_meta_analysis,by=1)
   freq_af = freq_af[order(freq_af$pos),]
-   freq_af$Effect = ifelse(toupper(freq_af$Allele1) == freq_af$a1, freq_af$Effect, -freq_af$Effect)
+  freq_af$Effect = ifelse(toupper(freq_af$Allele1) == toupper(freq_af$a2), freq_af$Effect, -freq_af$Effect)
   #freq_af$n = freq_af$TotalSampleSize
   #freq_af$se = freq_af$StdErr
   #freq_af$b = freq_af$Effect
@@ -34,7 +34,7 @@
   df = conditional_from_ids(res_preparation = res_preparation,rsids = c("rs71557308","rs186137462","rs116399700","rs1359231","rs1165178"))
   
   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,ld_noise=0,var_y = 1.6421)
-  stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.05)
+  stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.3)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results ,var_y=1.6421)
   
 

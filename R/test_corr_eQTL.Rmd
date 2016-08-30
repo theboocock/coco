@@ -3,15 +3,13 @@
   library(data.table)
   source("R/symmetrcize.R")
   source("R/estimate_betas.R")
-  ld_matrix = as.matrix(fread("data/CM6_Cauc-NEK1_imputed-LDcorr5523.ld", header=F))
+  ld_matrix = as.matrix(fread("data/LDcorr_452_5523.ld", header=F))
   ld_matrix = symmetricize(ld_matrix)
   frequencies = read.table("data/CM6_Cauc-NEK1_imputed-LDcorr5523.snpdat", header=T)
   corr = read.table("data/forCoco1", header=T)
+  corr = read.table("data/linear_452_5523_covar.cond2.assoc.linear", header=T)
+  
   dos_data = setDF(fread("data/NEK1_Cauc_452_dos.txt", header=T))
-  table(dos_data$ENSG00000137601 > 6)
-  freq_af = merge(corr,frequencies,by=1)
-  freq_af = freq_af[order(freq_af$POS),]
-  #freq_af$n =  399.531
   
   log_results =compare_logistic_results(freq_af,ld_matrix , dos_data)
   lin_results = compare_linear_results(freq_af, ld_matrix, dos_data)
@@ -26,6 +24,8 @@
   log_results_plink =compare_logistic_results(freq_af,ld_matrix , dos_data)
   lin_results_plink = compare_linear_results(freq_af, ld_matrix, dos_data)
   
+  afs  = apply(dat$bed,2,mean)/2
+  afs[which(names(afs) %in% c("rs4417927","rs10520157"))]
   write.table(log_results,file="data/logistic_testing_output.txt", row.names=F, quote=F)
   
    a = read.table("data/CM6_Cauc-NEK1_imputed-plink452_5523_GCTA_no_covar.ma", header=T)
@@ -33,7 +33,13 @@
    
   library(plink2R)
   dat = read_plink("data/CM6_Cauc-NEK1_imputed_plink452_5523")
- # freq_af$VAR = apply(dat$bed,2,function(x){var,na.rm=T})
+  rownames(dat$bed)
+ rownames(dat$bed) = str_replace(rownames(dat$bed),"0:","")
+  dat_new = merge(dat$bed, dos_data,by.x="row.names",by.y="ID")
+  
+  
+  
+  # freq_af$VAR = apply(dat$bed,2,function(x){var,na.rm=T})
   freq_af$N = freq_af$N - t(t(apply(dat$bed,2,function(x){sum(is.na(x))}))) #alpha = log(.33/(1-.33))
   
   betas = freq_af$beta*exp(alpha)/((1+ exp(alpha))^2)
@@ -52,12 +58,15 @@
   freq_af$beta = beta_unadj
   freq_af$se = se_unadj
   freq_af$GVAR = gvars
-  
+
+  ld_matrix2 = ld_matrix[which(freq_af$SNP %in% c("rs4417927","rs10520157")),which(freq_af$SNP %in% c("rs4417927","rs10520157"))]
+    
   freq_af= freq_af[which(freq_af$SNP %in% c("rs4417927","rs10520157")),]
-  #ld_matrix2 = ld_matrix[which(freq_af$SNP %in% c("rs4417927","rs10520157")),which(freq_af$SNP %in% c("rs4417927","rs10520157"))]
   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix2,hwe_variance = F,var_y=0.019431651487353568397,exact = T)
-  
+  df = joint_from_ids(rsids = "rs10520157", res_preparation,joint=T)
    
+  
+  
   df = conditional_from_ids(rsids = "rs10520157", res_preparation)
   test_beta_exact = df$res_step[df$res_step$rsid == "rs4417927",]$z_new
   res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix2,hwe_variance = F,var_y=0.019431651487353568397,exact = F)
@@ -139,7 +148,7 @@
   freq_af$se = new_betas[,2]
   freq_af$Z = freq_af$beta/freq_af$se
  
-  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = F)
+  res_preparation = prep_dataset_common(data_set = freq_af,ld_matrix= ld_matrix,hwe_variance = T)
   stepwise_results2 = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 1e-4,colinear_threshold = 0.9)
 
   df = conditional_from_ids(rsids = c("rs10520157"), res_preparation)
