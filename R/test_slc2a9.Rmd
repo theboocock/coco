@@ -1,0 +1,85 @@
+```{r, echo=T}
+  library(data.table)
+ library(CoCo)
+  slc2a9_ld = as.matrix(fread("data2/slc2a9_only.ld"))
+  slc2a9_freq = fread("data2/slc2a9_only.frq", header=T)
+  slc2a9_stats = fread("data2/slc2a9_summary.txt", header=F)
+  slc2a9_bim = fread("data2/slc2a9_only.bim", header=F)
+  slc2a9_data = merge(slc2a9_stats,slc2a9_freq,by.x="V1",by.y="SNP")
+  colnames(slc2a9_data)[1:13] = c("RSID","A1_X","A2_X","FREQ1","FREQ_SE","EFFECT","SE","P","study","GC","NSTUDY","SOMETHING","N")
+  slca9_data = merge(slc2a9_data,slc2a9_bim,by.x="RSID",by.y="V2")
+  colnames(slca9_data)[which(colnames(slca9_data) == "V4")] = "POS"
+  a =prep_dataset_coco(slca9_data,slc2a9_ld,var_y = 1.6421)
+ # g = stepwise_coco(a,exact=T)
+  #g = stepwise_coco(a,exact=F,joint = F,max_iter = 5)
+  g1 = stepwise_coco(a,joint = F,p_value_threshold = 9.186111e-06,max_iter = 5,colinear_threshold = 0.9,return_all_betas = T)
+  plot_stepwise(a,g1)
+  
+  g2 = stepwise_coco(a,exact=F,joint = T,p_value_threshold = 9.186111e-06,max_iter = 100, colinear_threshold = 0.5)
+  
+  gg = all_but_one(res_preparation = a,p_value_threshold =9.186111e-06, colinear_threshold = 0.6,stepwise_results = g1$stepwise_summary)
+  for(i in 1:nrow(g1$stepwise_summary)){ plot(abs(gg[[i]]$res_step$z_new), main=gg[[i]]$main_hit, ylim=c(1,20))}; plot(abs(a$data_set$b/a$data_set$se))
+  gg = all_but_one(res_preparation = a,p_value_threshold =9.186111e-06, colinear_threshold = 0.5,stepwise_results = g2)
+  for(i in 1:nrow(g2)){ plot(abs(gg[[i]]$res_step$z_new), main=gg[[i]]$main_hit, ylim=c(1,40))}; plot(abs(a$data_set$b/a$data_set$se))
+  
+  for(i in 1:(nrow(g1$stepwise_summary)-1)){ plot(abs(g1$step_betas[[i]]$z_new), main=g1$stepwise_summary$rsid[i+1], ylim=c(1,10))}; #plot(abs(a$data_set$b/a$data_set$se))
+  
+  
+  
+  abcg2_ld = as.matrix(fread("data2/abcg2_only.ld"))
+  abcg2_freq = fread("data2/abcg2_only.frq", header=T)
+  abcg2_stats = fread("data2/abcg2_summary.txt", header=F)
+  abcg2_bim = fread("data2/abcg2_only.bim", header=F)
+  abcg2_data = merge(abcg2_stats,abcg2_freq,by.x="V1",by.y="SNP")
+  colnames(abcg2_data)[1:13] = c("RSID","A1_X","A2_X","FREQ1","FREQ_SE","EFFECT","SE","P","study","GC","NSTUDY","SOMETHING","N")
+  abcg2_data = merge(abcg2_data,abcg2_bim,by.x="RSID",by.y="V2")
+  colnames(abcg2_data)[which(colnames(abcg2_data) == "V4")] = "POS"
+  abcg2_data = as.data.frame(abcg2_data)
+  abcg2_data= abcg2_data[order(abcg2_data$POS),]
+  ambig_one = toupper(abcg2_data$A1_X) == "A" & toupper(abcg2_data$A2_X) == "T" 
+  ambig_two = toupper(abcg2_data$A1_X) == "T" & toupper(abcg2_data$A2_X) == "A" 
+  ambig_three = toupper(abcg2_data$A1_X)== "G" & toupper(abcg2_data$A2_X) == "C" 
+  ambig_four = toupper(abcg2_data$A1_X) == "C" & toupper(abcg2_data$A2_X) == "G" 
+  ambigs = (ambig_one | ambig_two | ambig_three | ambig_four) & (abcg2_data$FREQ1 > 0.4 & abcg2_data$FREQ1 < 0.6)
+  hist(abs(abcg2_data[ambigs,]$FREQ1- abcg2_data[ambigs,]$MAF))
+  abcg2_ambig = abcg2_data[!ambigs,]
+  abcg2_ld_ambig = abcg2_ld[!ambigs,!ambigs]
+  
+  a =prep_dataset_coco(abcg2_data,abcg2_ld,var_y = 1.6421)
+  g = stepwise_coco(a,joint = T,p_value_threshold = 9.186111e-06)
+  plot_coco(a,g)
+  g = stepwise_coco(a,joint = F,p_value_threshold = 9.186111e-06)
+  plot_coco(a,g)
+  gg = all_but_one(res_preparation = a,p_value_threshold =9.186111e-06, colinear_threshold = 0.9,stepwise_results = g ) 
+  plot_coco(a,gg)
+  
+  
+  
+  
+  stepwise_results = stepwise_coco(a,joint = F,p_value_threshold = 9.186111e-06)
+
+  gg = all_but_one(res_preparation = a,p_value_threshold =9.186111e-06, colinear_threshold = 0.95,stepwise_results = g ) 
+  
+  
+  plot_stepwise(res_preparation,g)
+  
+  
+  
+  a =prep_dataset_coco(abcg2_ambig,abcg2_ld_ambig,var_y = 1.6421)
+  g = stepwise_coco(a,exact=F,joint = T,p_value_threshold = 9.186111e-06,max_iter = 2)
+  gg = all_but_one(res_preparation = a,p_value_threshold =9.186111e-06, colinear_threshold = 0.9,stepwise_results = g )
+  for(i in 1:nrow(g)){ plot(abs(gg[[i]]$res_step$z_new), main=gg[[i]]$main_hit, ylim=c(1,30))}; plot(abs(a$data_set$b/a$data_set$se))
+  
+  
+  
+  gg = all_but_one(res_preparation = a,p_value_threshold =9.186111e-06, colinear_threshold = 0.9,stepwise_results = g )
+  
+  
+  g = stepwise_coco(a,exact=F,joint = T)
+  
+  test_joint = abcg2_data[which(abcg2_data$RSID %in% c("rs2231142","rs2622629","rs2725256","rs2725256")),]
+  test_ld = abcg2_ld[which(abcg2_data$RSID %in% c("rs2231142","rs2622629","rs2725256","rs2725256")),which(abcg2_data$RSID %in% c("rs2231142","rs2622629","rs2725256","rs2725256"))]
+    a =prep_dataset_coco(test_joint,test_ld,var_y = 1.6421)
+    g = stepwise_coco(a,exact=F,joint = T,p_value_threshold = 9.186111e-06)
+  
+```

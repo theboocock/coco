@@ -1,9 +1,11 @@
-Package: corrcond
+Package: CoCo
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Correlation-based conditional analysis
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: James Boocock, Eli Stahl, and Weiqing Wang.
+Maintainer: James Boocock <jamesboocock@otago.ac.nz>
+Description: Exact, flexible, joint and conditional analysis of association
+    summary statistics using linkage disequillibrium.
+License: MIT
 LazyData: TRUE
+RoxygenNote: 5.0.1

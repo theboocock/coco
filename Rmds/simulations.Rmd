@@ -1,0 +1,163 @@
+# Simulate genotypes and run the all-but-one analysis.
+
+```{r}
+require(bindata)
+
+# Parameters of joint distribution
+N <- 1000000
+p1 <- 0.1
+p2 <- 0.5
+rho<- -.3
+beta = c(0.05, 0,.05,0)
+h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+h_sq = .6
+eta = X %*% beta
+y = eta + rnorm(N, 0, sd=sqrt((1-h_sq)))
+g1 = (h1[,1] + h2[,1])
+g2 = (h1[,2] + h2[,2])
+h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+g3 = (h1[,1] + h2[,1])
+g4= (h1[,2] + h2[,2])
+
+X = cbind(g1,g2,g3,g4)
+fitJoint1 = fitJoint
+
+X_small = X[1:1e5,]
+y_small = y[1:1e5]
+fitJoint = lm(y_small ~ X_small)
+summary(fitJoint)
+X = apply(X,2, function(x){ 
+    af = ( table(x)[3] * 2 +  table(x)[2]) / (2* length(x))
+    X_test = x
+    X_test[ x == 0] = -2  * af
+    X_test[ x == 1] = 1-   2* af
+    X_test[ x == 2] = 2-   2* af
+  return(X_test)
+})
+
+
+
+X_test = X[,1] 
+X_test[ X_test == 0] = -2  * afs[1]
+X_test[ X_test == 1] = 1-   2* afs[1]
+X_test[ X_test == 2] = 2-   2* afs[1]
+X_mean = apply(X,2,function(x) x - mean(x))
+
+
+h_sq = .6
+eta = X %*% beta
+y = eta + rnorm(N, 0, sd=sqrt((1-h_sq)))
+X_small = X[1:1e5,]
+y_small = y[1:1e5]
+fitJoint = lm(y_small ~ X_small)
+summary(fitJoint)
+fit1 = lm(y_small ~ X_small[,1])
+summary(fit1)
+fit2 = lm(y_small ~ X_small[,2])
+summary(fit2)
+fit3 = lm(y_small ~ X_small[,3])
+summary(fit3)
+fit4 = lm(y_small ~ X_small[,4])
+summary(fit4)
+ld_matrix = cor(X_small)
+
+afs = apply(X_small,2, function(x){ ( table(x)[1] * 2 +  table(x)[2]) / (2* length(x))})
+  
+
+
+betas = c(coef(fit1)[2],coef(fit2)[2],coef(fit3)[2],coef(fit4)[2])
+ses =  c(coef(summary(fit1))[2,2],coef(summary(fit2))[2,2],coef(summary(fit3))[2,2],coef(summary(fit4))[2,2])
+input_data = data.frame(rsid=c("rs1","rs2","rs3","rs4"),b=betas,se=ses,n=1e5,af=afs)
+#input_data = input_data[c(1,3),]
+#input_data = input_data[idx,]
+#ld_matrix = ld_matrix[c(1,3),c(1,3)]
+df = stepwise_conditional_run(data_set = input_data, ld_matrix = ld_matrix, var_y = var(y_small))
+
+new_data = all_but_one(stepwise_results = df, data_set =input_data, ld_matrix =ld_matrix, var_y=var(y_small))
+
+inside=cor(X_small[,idx])
+
+
+
+
+
+idx = c(1,3)
+fit_two = (lm(y_small ~ X_small[,1] + X_small[,3]))
+summary(fit_two)
+
+ hwe_diag =  (2*afs[idx] * ( 1- afs[idx]) * 1e5)
+
+#outside2 = diag(diag(t(X_small)%*%X_small)^1) %*% inside
+## We get the same results.
+inside=cor(X_small[,idx])
+
+outside = sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag))
+
+beta_inv = solve(outside)
+#Covariances
+new_betas = beta_inv %*% diag(hwe_diag) %*% betas[idx]
+new_betas
+coef(fit_two)[2:3]
+
+inside=cor(X_small)
+inside
+
+
+
+inside= diag(diag(t(X_small)%*%X_small)^-0.5) %*% t(X_small)%*% X_small %*% diag(diag(t(X_small)%*%X_small)^-0.5) 
+inside
+
+
+
+
+outside = sqrt(diag(diag(t(X_small)%*%X_small))) %*% inside %*% sqrt(diag(diag(t(X_small)%*%X_small)))
+
+beta_inv = solve(outside)
+#Covariances
+new_betas = beta_inv %*% diag(diag(t(X_small)%*%X_small)) %*% betas
+new_betas
+coef(fitJoint)[2:5]
+
+
+
+
+?cor
+
+
+
+
+
+
+
+inside= diag(diag(t(X_small[,idx])%*%X_small[,idx])^-0.5) %*% t(X_small[,idx])%*% X_small[,idx] %*% diag(diag(t(X_small[,idx])%*%X_small[,idx])^-0.5) 
+inside = cor(X_small[,idx])
+outside = sqrt(diag(diag(t(X_small[,idx])%*%X_small[,idx]))) %*% inside %*% sqrt(diag(diag(t(X_small[,idx])%*%X_small[,idx])))
+#outside2 = diag(diag(t(X_small)%*%X_small)^1) %*% inside
+beta_inv = solve(outside)
+#Covariances
+new_betas = beta_inv %*% diag(diag(t(X_small[,idx])%*%X_small[,idx])) %*% betas[idx]
+new_betas
+coef(fit_two)[2:3]
+
+inside= diag(diag(t(X_small[,idx])%*%X_small[,idx])^-0.5) %*% t(X_small[,idx])%*% X_small[,idx] %*% diag(diag(t(X_small[,idx])%*%X_small[,idx])^-0.5) 
+
+outside = sqrt(diag(diag(t(X_small[,idx])%*%X_small[,idx]))) %*% inside %*% sqrt(diag(diag(t(X_small[,idx])%*%X_small[,idx])))
+#outside2 = diag(diag(t(X_small)%*%X_small)^1) %*% inside
+beta_inv = solve(outside)
+#Covariances
+new_betas = beta_inv %*% diag(diag(t(X_small[,idx])%*%X_small[,idx])) %*% betas[idx]
+new_betas
+
+
+
+
+
+coef(fit_two)[2:3]
+#t((var(y) -t(t(apply(X,2,var))) * t(t(betas^2))) / 1e5)%*% beta_inv
+vars = (t(y_small) %*% y_small - t(new_betas) %*% diag(diag(t(X_small[,idx])%*%X_small[,idx])) %*% ((betas[idx]))) / (1e5 - 2)
+sqrt(diag(vars[1] * beta_inv))
+coef(summary(fit_two))[,2][2:3]
+
+```
