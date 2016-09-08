@@ -1,4 +1,4 @@
-Package: CoCo
+Package: coco 
 Type: Package
 Title: Correlation-based conditional analysis
 Version: 0.1.0
