@@ -46,9 +46,10 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use
   }
   colnames(data_set)[beta] = "b"
   af = which(grepl("^FREQ1$|^F$|^freq$|^FRQ$|^MAF$|^af$", names(data_set),  ignore.case = T))[1]
-  if(length(af) == 0){
+  # sometimes have 2 (one for each allele), doesn't matter whcih you take for our applications (fGWAS and coloc)
+  if(is.na(af)){
     stop("AF column not found")
-  }# sometimes have 2 (one for each allele), doesn't matter whcih you take for our applications (fGWAS and coloc)
+  }
   colnames(data_set)[af] = "af"
   se = which(grepl("^se$|^StdErr$|BMIadjMainSE|^SE$", names(data_set),  ignore.case = F))
   if(length(se) == 0){
