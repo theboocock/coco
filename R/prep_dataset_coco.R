@@ -18,7 +18,7 @@
 #' coco_data$var_y
 #' 
 #' @export
-prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F){
+prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use_info=T){
   if(missing(data_set)){
     stop("Must specify a data_set argument")
   }
@@ -77,6 +77,7 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F){
   var = which(grepl("^GVAR$", names(data_set), ignore.case= T))[1]
   if(is.na((var))|| hwe_variance){
     var_flag_hwe = T
+    message("GVAR column not found or hwe_variance flag set. Assuming HWE genotypic variance")
     data_set$var = 2*data_set$af*(1-data_set$af)
   }else{
     var_flag_hwe = F
@@ -86,18 +87,19 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F){
     message("Var_y missing, will estimate using cojo method")
     var_y = estimate_vary(data_set)
   }
-  info = which(grepl("INFO|RSQ", names(data_set),  ignore.case = T))
-  if(length(info) == 0){
-    if(var_flag_hwe){
-      message("Info column not found assuming HWE genotypic variance")
-      data_set$var = data_set$var 
-    }
-  }else{
-    if(var_flag_hwe){
-      colnames(data_set)[info] = "info"
-      print(data_set$var)
-      message("Info column not found using combination with HWE to estimate genotypic variance")
-      data_set$var = data_set$var * data_set$info
+  if(is.na(var) & use_info){
+    info = which(grepl("INFO|RSQ", names(data_set),  ignore.case = T))
+    if(is.na(info)){
+      if(var_flag_hwe){
+        message("Info column not found. Assuming HWE genotypic variance")
+      }
+    }else{
+      if(var_flag_hwe){
+        colnames(data_set)[info] = "info"
+#        print(data_set$var)
+        message("Info column found. Adjusting HWE var to estimate genotypic variance")
+        data_set$var = data_set$var * data_set$info
+      }
     }
   }
 
