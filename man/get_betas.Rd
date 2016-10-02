@@ -5,7 +5,7 @@
 \title{get_betas.}
 \usage{
 get_betas(idx_joint, data_set, ld_matrix, hwe_diag, hwe_diag_outside, var_y,
-  colinear_threshold = 0.9, joint = T)
+  colinear_threshold = 0.9, joint = T, exact = F)
 }
 \arguments{
 \item{data_set}{input file format}

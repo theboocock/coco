@@ -1,0 +1,28 @@
+```{r, echo=T}
+    library(data.table)
+    f_read = as.data.frame(fread("data2/kottgen_effect_filtered.txt", header=T))
+    ld_matrix = as.matrix(fread("data2/ABCG2.ld", header=F))
+    snpdat = as.data.frame(fread("data2/ABCG2.snpdat", header=T))
+    idx_in = which(snpdat$RSID %in% f_read$MarkerName)
+    ld_abcg2 = ld_matrix[idx_in, idx_in]
+    snpdat_abcg2 = snpdat[idx_in,]
+    f_merge = merge(f_read, snpdat_abcg2, by.x="MarkerName", by.y="RSID")
+    f_merge = f_merge[order(f_merge$POS),]
+    f_merge$Effect = ifelse(toupper(f_merge$Allele1) == toupper(f_merge$A2), f_merge$Effect, -f_merge$Effect)
+    colnames(f_merge)[1] = "SNP"
+    library(coco)
+    gg = prep_dataset_coco(data_set=f_merge, ld_matrix=ld_abcg2,hwe_variance = F,exact=T, var_y=1.6421)
+    gg2 = prep_dataset_coco(data_set=f_merge, ld_matrix=ld_abcg2,hwe_variance = F,exact=F, var_y=1.61078)
+    get_ld(c("rs2231142","rs3114020","rs2622629","rs2054576"),gg)
+    diag(ld_abcg2) = diag(ld_abcg2) + 0.5
+    
+    #f_merge$Freq1 = ifelse(f_merge$Freq1 > 0.5, 1 - f_merge$Freq1, f_merge$Freq1)
+    #f_merge$FREQ1 = ifelse(f_merge$FREQ1 > 0.5, 1 - f_merge$FREQ1, f_merge$FREQ1)
+    gg$exact = T
+    #gg$neff = (gg$var_y - gg$var *gg$b^2)/(gg$var *gg$se^2) + 1
+    
+    
+    
+    lel = stepwise_coco(gg, joint=F,p_value_threshold =9.186111e-06)
+    get_ld(c("rs2231142","rs3114020","rs2622629","rs2728126"),gg)
+```

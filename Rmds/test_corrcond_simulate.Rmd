@@ -2,16 +2,25 @@
   require(bindata)
 
 # Parameters of joint distribution
-N <- 1000000
+N <- 10
 p1 <- 0.5
 p2 <- 0.5
-rho<- -.4
+rho<- .6
 hwe_diag = (2*freq_af$af * ( 1- freq_af$af) * freq_af$n)
 #one_hundred = diag(100)
 
 varx = 2*p1*(1-p1)
 vary = 2*p2*(1-p2)
 # Create one pair of correlated binomial values
+X = c()
+N=100
+for(i in 1:100){
+  h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+  h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+  g1 = (h1[,1] + h2[,1])
+  g2 = (h1[,2] + h2[,2])
+  X = cbind(X, g1,g2)
+}
 h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 
@@ -26,14 +35,20 @@ X = cbind(g1,g2,g3,g4)
 X = X -1
 cor(g1,g2)
 
-beta = c(0.05, 0,.05,0)
+beta = rep(c(0.1,0),100)
 
 h_sq = .6
 eta = X %*% beta
 y = eta + rnorm(N, 0, sd=sqrt((1-h_sq)))
 X_small = X[1:1e5,]
 y_small = y[1:1e5]
-summary(lm(y_small ~ X_small))
+summary(glmn(y ~ X))
+summary(lm(y ~ X[,1]))
+summary(lm(y ~ X[,2]))
+summary(lm(y ~ X[,3]))
+summary(lm(y ~ X[,4]))
+summary(lm(y ~ X[,1:2]))
+summary(lm(residuals(lm(y ~ X[,1])) ~ -1 +  X[,2]))
 
 N_Case = 20000
 N_Control = 80000
@@ -58,4 +73,44 @@ for(i in 1:ncol(X_small)){
   }
 
 
+```
+
+
+```{r, echo=T}
+N=100
+for(i in 1:100){
+  h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+  h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+  g1 = (h1[,1] + h2[,1])
+  g2 = (h1[,2] + h2[,2])
+  X = cbind(X, g1,g2)
+}
+h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+
+g1 = (h1[,1] + h2[,1])
+g2 = (h1[,2] + h2[,2])
+h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
+g3 = (h1[,1] + h2[,1])
+g4= (h1[,2] + h2[,2])
+
+X = cbind(g1,g2,g3,g4)
+X = X -1
+cor(g1,g2)
+
+beta = rep(c(0.1,0),100)
+
+h_sq = 12
+eta = X %*% beta
+y = eta + rnorm(N, 0, sd=sqrt((20-h_sq)))
+X_small = X[1:1e5,]
+y_small = y[1:1e5]
+summary(glmn(y ~ X))
+#install.packages("glmnet")
+library(glmnet)
+library(MASS)
+(lm.ridge(y ~ X,lambda = 10000))
+fit = glmnet(X, y, alpha = 0, weights = c(rep(1,50),rep(2,50)), nlambda = 20)
+cvfit = cv.glmnet(X, y, type.measure = "mse", nfolds = 20)
 ```

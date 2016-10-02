@@ -120,7 +120,8 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F){
   
  # (_jma_Vp - _MSX[i] * _beta[i] * _beta[i]) / (_MSX[i] * _beta_se[i] * _beta_se[i]
   data_set$neff = (var_y - data_set$var *data_set$b^2)/(data_set$var *data_set$se^2) + 1
-  hwe_diag =  ( data_set$n - 1) * data_set$var
+  #hwe_diag =  ( data_set$n - 1) * data_set$var
+  print(data_set$neff)
   # hwe_diag =  ( data_set$n -1)
   #data_set$neff = (var_y) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
   #data_set$neff = (var_y* (data_set$n-1)) / (hwe_diag *data_set$se^2)  - (data_set$b^2) / (data_set$se^2) +1
@@ -130,13 +131,14 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F){
   #hwe_diag =  data_set$n
   if(exact){
     #data_set$n = data_set$n -1
-    hwe_diag =  (data_set$n -1 ) * data_set$var
+    print(data_set$var)
+    hwe_diag =  (data_set$neff -1 ) * data_set$var
     # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
     #  ld_matrix = ld_matrix[idxs,idxs]
     #  data_set = data_set[idxs,]
     #hwe_diag_outside =  (2*data_set$af * ( 1- data_set$af) * data_set$info)
-    hwe_diag_outside = data_set$var * (data_set$n -1 )
-    data_set$neff = data_set$n -1
+    hwe_diag_outside = data_set$var * (data_set$neff -1 )
+    data_set$neff = data_set$neff -1
   }else{
     hwe_diag =  (data_set$neff) * data_set$var
     # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))

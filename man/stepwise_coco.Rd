@@ -5,10 +5,12 @@
 \title{stepwise_conditional}
 \usage{
 stepwise_coco(res_preparation, p_value_threshold = 1e-04,
-  colinear_threshold = 0.9, joint = T)
+  colinear_threshold = 0.9, joint = T, max_iter = 100,
+  return_all_betas = F)
 
 stepwise_coco(res_preparation, p_value_threshold = 1e-04,
-  colinear_threshold = 0.9, joint = T)
+  colinear_threshold = 0.9, joint = T, max_iter = 100,
+  return_all_betas = F)
 }
 \arguments{
 \item{p_value_threshold}{float P-value threshold for forward-stepwise selection.}

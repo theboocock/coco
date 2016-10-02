@@ -5,7 +5,7 @@
 \title{conditional_from_ids}
 \usage{
 joint_from_ids(rsids, res_preparation, idxs, return_only_these = F,
-  joint = T)
+  joint = T, exact = F)
 }
 \arguments{
 \item{rsids}{character vector - SNPIDs in res preparation to perform CoCo analysis on.}
@@ -35,7 +35,7 @@ Joint from ids conditional wrapper
 \examples{
 
 data(coco_nek1)
-res = joint_from_ids(rsids="rs10520157",coco_nek1)
+res = joint_from_ids(rsids="rs10520157",coco_nek1,exact=T)
 # Second hit rs4417927
 res$res_step[res$res_step$rsid == "rs4417927",]
 

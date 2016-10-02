@@ -37,7 +37,19 @@
   stepwise_results = stepwise_conditional_run(res_preparation = res_preparation,p_value_threshold = 9.186111e-06,colinear_threshold = 0.3)
   all_but_one_df = all_but_one(res_preparation=res_preparation,stepwise_results = stepwise_results ,var_y=1.6421)
   
+  fit = glmnet(X, y, alpha = 0, weights = c(rep(1,50),rep(2,50)), nlambda = 20)
 
+  geno = cor((X))
+  wow = apply(X,2,var)
+  coef(lm.ridge(y ~ X,lambda = 0))  
+  wow2 = apply(X,2,mean)/2
+  a = as.data.frame(cbind(1:200,1:200,wow,200,wow2,  coef(lm.ridge(y ~ X,lambda = 0))[2:201],1)) 
+
+  colnames(a) = c("RSID","POS","GVAR","N","MAF","BETA","SE")
+  gg = prep_dataset_coco(a,geno,exact = T,9.446896)
+
+  
+      
 ```
 
 # Alright testing the conditional analysis fuction

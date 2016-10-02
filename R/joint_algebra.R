@@ -31,6 +31,7 @@ step_joint = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag,re
       }
     }
   }
+  
   #print( sqrt(diag(hwe_diag)) %*% inside %*% sqrt(diag(hwe_diag)))
   #  beta_inv = chol2inv(chol(outside))
  # outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
@@ -45,7 +46,8 @@ step_joint = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag,re
   #because that's our SNP we are adding to the model
   if(exact){
     vars = (var_y * (median(neffs))- t(new_betas) %*%  diag(hwe_diag) %*% ((betas))) / (median(neffs) - n_betas )
-  }else{
+    
+    }else{
     vars = c(var_y)
   }
     ses = sqrt(diag(vars[1] * beta_inv))

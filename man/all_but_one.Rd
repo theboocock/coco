@@ -5,7 +5,7 @@
 \title{all_but_one}
 \usage{
 all_but_one(res_preparation, stepwise_results, p_value_threshold = 1e-06,
-  colinear_threshold = 0.9, joint = T)
+  colinear_threshold = 0.9, joint = T, exact = F)
 }
 \arguments{
 \item{stepwise_results}{- results from a stepwise analysis.}
