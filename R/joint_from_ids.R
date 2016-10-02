@@ -28,7 +28,7 @@
 #' res$res_step[res$res_step$rsid == "rs4417927",]
 #' 
 #' @export
-joint_from_ids = function(rsids, res_preparation, idxs,return_only_these=F, joint=T,exact=F){
+joint_from_ids = function(res_preparation, rsids=NULL, idxs=NULL,return_only_these=F, joint=T,exact=F){
   if(class(res_preparation) != "coco_data"){
     stop("res_preparation object must be of type coco_data")
   }
@@ -55,7 +55,7 @@ joint_from_ids = function(rsids, res_preparation, idxs,return_only_these=F, join
                            neffs=data_set$neff[rsid_idx],hwe_diag_outside = hwe_diag_outside[rsid_idx],
                            var_y = var_y,return_entire_beta_set = T,hwe_diag = hwe_diag[rsid_idx], exact=exact)
       to_return = cbind(data_set[rsid_idx,], out_tmp/sqrt(data_set$var[rsid_idx]),2*pnorm(abs(out_tmp[,1]/out_tmp[,2]),lower.tail = F))
-      colnamse(to_return) = c(colnames(data_set), "beta_new","se_new","p_new")
+      colnames(to_return) = c(colnames(data_set), "beta_new","se_new","p_new")
       return(to_return)
     }else{
       out_tmp = step_conditional(betas= data_set$b[rsid_idx],ld_matrix = ld_matrix[rsid_idx,rsid_idx],
