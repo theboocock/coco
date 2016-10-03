@@ -4,6 +4,6 @@
   ld = as.matrix(setDF(fread("data2/1:145538184-145786438.gen.LD", header=F)))
   
   g = prep_dataset_coco(snpdat,ld,var_y = 1.6421,exact = F,hwe_variance = T)
-  stepwise_coco(g,joint = F)
+  step_coc = stepwise_coco(g,joint = F)
   joint_from_ids(g,"rs1471633",return_only_these = T)
 ```

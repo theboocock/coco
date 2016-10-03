@@ -18,11 +18,12 @@ step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_d
   # todo add the new math.
   inside =  ld_matrix
   n_betas = length(betas)
-  outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
-  #print(outside)
   if(n_betas == 1){
     return(cbind(betas,ses))
   }
+  outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
+  #print(outside)
+
   if(!exact){
   for(j in 1:ncol(outside)){
     for(k in (j):ncol(outside)){

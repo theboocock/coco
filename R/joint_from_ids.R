@@ -50,7 +50,6 @@ joint_from_ids = function(res_preparation, rsids=NULL, idxs=NULL,return_only_the
     stop("No rsids or indexes to conditional on were found")
   }
   if(return_only_these){
-    #return(NULL)
     if(joint){
       out_tmp = step_joint(betas= data_set$b[rsid_idx],ld_matrix = ld_matrix[rsid_idx,rsid_idx],
                            neffs=data_set$neff[rsid_idx],hwe_diag_outside = hwe_diag_outside[rsid_idx],
@@ -65,8 +64,7 @@ joint_from_ids = function(res_preparation, rsids=NULL, idxs=NULL,return_only_the
                                  var_y = var_y,return_entire_beta_set = T,hwe_diag = hwe_diag[rsid_idx], exact=exact,ses=data_set$se[rsid_idx])
       to_return = cbind(data_set[rsid_idx,], out_tmp,2*pnorm(abs(out_tmp[,1]/out_tmp[,2]),lower.tail = F))
       
-      to_return = cbind(data_set[rsid_idx,], out_tmp,2*pnorm(abs(out_tmp[,1]/out_tmp[,2]),lower.tail = F))
-      colnamse(to_return) = c(colnames(data_set), "beta_new","se_new","p_new")
+      colnames(to_return) = c(colnames(data_set), "beta_new","se_new","p_new")
       return(to_return)
     }
   }else{
