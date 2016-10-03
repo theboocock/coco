@@ -14,12 +14,15 @@
 ##' @param hwe_diag Diagonal matrix containing the genotypic variance *n
 ##' @return Joint betas and standard errors.
 
-step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag,return_entire_beta_set=F,exact=F){
+step_conditional = function(betas, ld_matrix,neffs,var_y, hwe_diag_outside,hwe_diag,return_entire_beta_set=F,exact=F,ses=NULL){
   # todo add the new math.
   inside =  ld_matrix
   n_betas = length(betas)
   outside = sqrt(diag(hwe_diag_outside)) %*% inside %*% sqrt(diag(hwe_diag_outside))
   #print(outside)
+  if(n_betas == 1){
+    return(cbind(betas,ses))
+  }
   if(!exact){
   for(j in 1:ncol(outside)){
     for(k in (j):ncol(outside)){
