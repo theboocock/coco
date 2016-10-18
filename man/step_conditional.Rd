@@ -5,7 +5,7 @@
 \title{step_conditional}
 \usage{
 step_conditional(betas, ld_matrix, neffs, var_y, hwe_diag_outside, hwe_diag,
-  return_entire_beta_set = F, exact = F)
+  return_entire_beta_set = F, exact = F, ses = NULL)
 }
 \arguments{
 \item{betas}{vector of betas that will be adjusted in the matrix operations.}

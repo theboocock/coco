@@ -1,7 +1,10 @@
 ```{r, echo=T}
   require(bindata)
 
-# Parameters of joint distribution
+# Parameters of joint distribution.
+
+
+
 N <- 10
 p1 <- 0.5
 p2 <- 0.5
@@ -14,13 +17,14 @@ vary = 2*p2*(1-p2)
 # Create one pair of correlated binomial values
 X = c()
 N=100
-for(i in 1:100){
+for(i in 1:N){
   h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
   h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
   g1 = (h1[,1] + h2[,1])
   g2 = (h1[,2] + h2[,2])
   X = cbind(X, g1,g2)
 }
+X2 = t(apply(X,1,function(x){scale(x)}))
 h1 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 h2 <- rmvbin(N, c(p1,p2), bincorr=(1-rho)*diag(2)+rho)
 
@@ -36,9 +40,20 @@ X = X -1
 cor(g1,g2)
 
 beta = rep(c(0.1,0),100)
+pca =svd(cor(X2))
+W = X2 %*% pca$v[,1:10]
+
+W2 = (pca$v[1:10,]) %*% X2
+ 
+solve(t(W)%*%W) %*% t(W) %*% y
+# PCA regression from summary statistics, probably can't do this from SS.
+solve(t(W)%*%W) %*% (diag(diag((t(W)%*%W)))) %*% (diag(diag(ginv(t(W)%*%W))) %*% t(W) %*% y)
+
+solve(t(W)%*%W) %*% t(W) %*% y
+
 
 h_sq = .6
-eta = X %*% beta
+eta = X2 %*% beta
 y = eta + rnorm(N, 0, sd=sqrt((1-h_sq)))
 X_small = X[1:1e5,]
 y_small = y[1:1e5]

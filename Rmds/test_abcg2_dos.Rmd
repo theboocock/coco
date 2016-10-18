@@ -1,7 +1,7 @@
 ```{r, echo=T}
     library(data.table)
     f_read = as.data.frame(fread("data2/kottgen_effect_filtered.txt", header=T))
-    ld_matrix = as.matrix(fread("data2/ABCG2.ld", header=F))
+    ld_matrix = as.matrix(fread("data2/slc2a9_only.ld", header=F))
     snpdat = as.data.frame(fread("data2/ABCG2.snpdat", header=T))
     idx_in = which(snpdat$RSID %in% f_read$MarkerName)
     ld_abcg2 = ld_matrix[idx_in, idx_in]

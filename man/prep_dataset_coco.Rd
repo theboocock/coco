@@ -4,7 +4,8 @@
 \alias{prep_dataset_coco}
 \title{estimate_vary}
 \usage{
-prep_dataset_coco(data_set, ld_matrix, var_y, hwe_variance = F, exact = F)
+prep_dataset_coco(data_set, ld_matrix, var_y, hwe_variance = F, exact = F,
+  use_info = T)
 }
 \arguments{
 \item{data_set}{data.frame. Coco formatted input data.}

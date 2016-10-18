@@ -10,7 +10,8 @@
 ##' @param ld_matrix LD matrix for the subset of the region.
 ##' @param stepwise_results - results from a stepwise analysis.
 ##' @return all_but_ones  betas and standard error for the entire region.
-##'
+##' 
+##' @export
 
 all_but_one = function(res_preparation, stepwise_results,p_value_threshold=1e-6,colinear_threshold=0.9,joint=T, exact=F){
   #extract variance from the dataset

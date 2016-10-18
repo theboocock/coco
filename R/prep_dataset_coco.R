@@ -29,6 +29,16 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use
     stop("Must specify an ld_matrix argument on the command-line")
   }
   message("Preparing the dataset for coco")
+  
+  idx_null = which(is.na(ld_matrix))
+  
+  if(length(idx_null) > 0){
+    message("NA's in LD matrix removing from analysis")
+    idx_null = which(!is.na(ld_matrix))
+    data_set = data_set[idx_null,]
+    ld_matrix = data_set[idx_null, idx_null]
+  }
+  
   id = which(grepl("^SNP$|^rsid$", names(data_set), ignore.case = T))
   if(length(id) == 0){
     stop("RSID column not found")
@@ -93,7 +103,7 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use
   }
   if(is.na(var) & use_info){
     info = which(grepl("INFO|RSQ", names(data_set),  ignore.case = T))
-    if(is.na(info)){
+    if(length(info) == 0){
       if(var_flag_hwe){
         message("Info column not found. Assuming HWE genotypic variance")
       }
@@ -136,6 +146,7 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use
   #hwe_diag =  data_set$n
   if(exact){
     #data_set$n = data_set$n -1
+   
     hwe_diag =  (data_set$neff -1 ) * data_set$var
     # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
     #  ld_matrix = ld_matrix[idxs,idxs]
@@ -144,6 +155,7 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use
     hwe_diag_outside = data_set$var * (data_set$neff -1 )
     data_set$neff = data_set$neff -1
   }else{
+    #data_set$var = 1
     hwe_diag =  (data_set$neff) * data_set$var
     # idxs = which(!(data_set$neff > (mean(data_set$neff) + 6 * sd(data_set$neff)) | data_set$neff < (mean(data_set$neff) - 6 * sd(data_set$neff))))
     #  ld_matrix = ld_matrix[idxs,idxs]

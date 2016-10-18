@@ -4,8 +4,8 @@
 \alias{joint_from_ids}
 \title{conditional_from_ids}
 \usage{
-joint_from_ids(rsids, res_preparation, idxs, return_only_these = F,
-  joint = T, exact = F)
+joint_from_ids(res_preparation, rsids = NULL, idxs = NULL,
+  return_only_these = F, joint = T, exact = F)
 }
 \arguments{
 \item{rsids}{character vector - SNPIDs in res preparation to perform CoCo analysis on.}
