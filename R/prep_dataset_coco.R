@@ -30,11 +30,11 @@ prep_dataset_coco = function(data_set,ld_matrix,var_y,hwe_variance=F,exact=F,use
   }
   message("Preparing the dataset for coco")
   
-  idx_null = which(is.na(ld_matrix))
+  idx_null = which(is.na(ld_matrix[1,]))
   
   if(length(idx_null) > 0){
     message("NA's in LD matrix removing from analysis")
-    idx_null = which(!is.na(ld_matrix))
+    idx_null = which(!is.na(ld_matrix[1,]))
     data_set = data_set[idx_null,]
     ld_matrix = data_set[idx_null, idx_null]
   }
